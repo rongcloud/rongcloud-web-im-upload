@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title> Qiniu - Ali </title>
+    <!-- <script src="./promise.js"></script> -->
+    <script src = "./aliyun-oss-sdk.min.js"></script>
+    <script src = "./ali.js"></script>
+    <script src = "../uploader.js"></script>
+   <style type = "text/css">
+	.container{
+		position: absolute; 
+		height: 40px; 
+		width: 300px; 
+		color: Silver;
+    	border-width: 1px; 
+    	border-style: Solid;
+	}
+	.progressBar{
+		position: absolute; 
+		height: inherit; 
+		width: 0%; 
+		background-color: gray;
+	}
+
+	.progressContent{
+		position: absolute; 
+		height: inherit; 
+		width: 100%;
+		text-align:center; 
+		font-size:32px;
+	}
+	#success-log{
+		float: right;
+	}
+</style>
+</head>
+<body>
+	<p>File：<input type="file" id="file-Id" value="upload-file" /></p>
+
+	<p>Base64：<input type="button" id="image-Id" value="Base64"/></p>
+
+	<div class="container" id="container">
+        <div class = "progressBar" id= "progressBar"></div>
+        <div class = "progressContent" id = "progressContent">
+        </div>
+    </div> 
+    <div id="success-log"></div>
+</body>
+<script>
+
+/**
+ var options = {
+	 	domain			: '',											// default : '' ,必须设置文件服务器地址。
+	  	file_data_name	: 'file',										// default : file , 文件对象的 key 。
+	 	base64_size		: 10,											// default : 10 单位 MB 。
+		chunk_size		: 10,											// default : 10 单位 MB 。
+		headers			: { Content-Type : 'multipart/form-data'},		// default : { Content-Type : 'multipart/form-data'} ,增加 requestHeader 需扩展。 
+	  	multi_parmas	: { },											// default : {} 扩展上传属性 。
+	  	query			: { },											// default : {}	扩展 url 参数 e.g. http://rongcloud.cn?name=zhangsan 。
+	  	support_options : true,											// default : true, 文件服务器不支持 OPTIONS 请求需设置为 false。
+		data 			: dataType.form
+  	};
+*/
+
+//---FILE----------------------------------------------------------------------------------------------------
+
+	var config = { 
+				domain: 'http://martin0035.oss-cn-shanghai.aliyuncs.com',
+			 	multi_parmas : {
+			 		appServer : "http://localhost:3000",
+			 		bucket : 'martin0035',
+			 		region : 'oss-cn-shanghai',
+			 		OSSUrl : './aliyun-oss-sdk.min.js'
+			 	}
+			 };
+
+	var callback = {
+			onError	: function (errorCode) { 
+				console.log(errorCode);
+			},
+			onProgress : function (loaded, total) {
+				var percent = Math.floor(loaded/total*100);
+				var progressBar 	= document.getElementById('progressBar'), 
+					progressContent = document.getElementById('progressContent');
+					progressBar.style.width = percent + '%';
+	        		progressContent.innerHTML = percent + "%";
+			},
+			onCompleted : function (data) { 
+				document.getElementById('success-log').innerHTML += JSON.stringify(data) + '</br>';
+			} 
+	 };
+
+	var fileUpload = UploadFile.init(config);
+
+	var file = document.getElementById("file-Id");
+	file.onchange = function(){
+		fileUpload.upload(this.files[0], callback);
+	};
+
+//---IMAGE----------------------------------------------------------------------------------------------------
+
+	var image = document.getElementById('image-Id');
+	var imgConfig = { 
+				domain: 'http://martin0035.oss-cn-shanghai.aliyuncs.com',
+			 	multi_parmas : {
+			 		appServer : "http://localhost:3000",
+			 		bucket : 'martin0035',
+			 		region : 'oss-cn-shanghai',
+			 		OSSUrl : './aliyun-oss-sdk.min.js'
+			 	}
+			 };
+
+	var imgUpload = UploadFile.init(imgConfig);
+		
+		image.onclick = function(){
+			imgUpload.upload(base64, callback);
+		};
+	var base64 = "/9j/4AAQSkZJRgABAQA...";
+</script>
+
+</html>

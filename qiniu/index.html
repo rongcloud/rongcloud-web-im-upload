@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title> Qiniu - Upload </title>
+    <script src = "./qiniu.js"></script>
+    <script src = "../upload.js"></script>
+    <script src="./init.js"></script>
+   <style type = "text/css">
+	.container{
+		position: absolute; 
+		height: 40px; 
+		width: 300px; 
+		color: Silver;
+    	border-width: 1px; 
+    	border-style: Solid;
+	}
+	.progressBar{
+		position: absolute; 
+		height: inherit; 
+		width: 0%; 
+		background-color: gray;
+	}
+
+	.progressContent{
+		position: absolute; 
+		height: inherit; 
+		width: 100%;
+		text-align:center; 
+		font-size:32px;
+	}
+	#success-log{
+		float: right;
+	}
+</style>
+</head>
+<body>
+	<p>File：<input type="file" id="file-Id" value="upload-file" /></p>
+
+	<p>Cancel：<input type="button" id="cancel-Id" value="Cancel-file" /></p>
+
+	<p>Base64：<input type="button" id="image-Id" value="Base64"/></p>
+
+	<div class="container" id="container">
+        <div class = "progressBar" id= "progressBar"></div>
+        <div class = "progressContent" id = "progressContent">
+        </div>
+    </div> 
+    <div id="success-log">
+    	<img src="" alt="" id="showImage">
+    </div>
+</body>
+<script>
+
+/**
+ var options = {
+	 	domain			: '',											// default : '' ,必须设置文件服务器地址。
+	  	file_data_name	: 'file',										// default : file , 文件对象的 key 。
+	 	base64_size		: 10,											// default : 10 单位 MB 。
+		chunk_size		: 10,											// default : 10 单位 MB 。
+		headers			: { Content-Type : 'multipart/form-data'},		// default : { Content-Type : 'multipart/form-data'} ,增加 requestHeader 需扩展。 
+	  	multi_parmas	: { },											// default : {} 扩展上传属性 。
+	  	query			: { },											// default : {}	扩展 url 参数 e.g. http://rongcloud.cn?name=zhangsan 。
+	  	support_options : true,											// default : true, 文件服务器不支持 OPTIONS 请求需设置为 false。
+		data 			: dataType.form
+  	};
+*/
+
+	var config = { 
+			// domain: 'http://upload.qiniu.com',
+			domain: 'https://up.qbox.me',
+			getToken: function(callback){
+				var token = "CddrKW5AbOMQaDRw"
+				callback(token);
+			}
+		 };
+	var callback = {
+			onError	: function (errorCode) { 
+				console.log(errorCode);
+			},
+			onProgress : function (loaded, total) {
+				var percent = Math.floor(loaded/total*100);
+				var progressBar 	= document.getElementById('progressBar'), 
+					progressContent = document.getElementById('progressContent');
+					progressBar.style.width = percent + '%';
+	        		progressContent.innerHTML = percent + "%";
+			},
+			onCompleted : function (data) { 
+				document.getElementById('success-log').innerHTML += JSON.stringify(data) + '</br>';
+				// document.getElementById('showImage').src = 'data:image/png;base64,' + data.thumbnail;
+			} 
+	 };
+
+	var file = document.getElementById("file-Id");
+	var cancelBtn = document.getElementById('cancel-Id');
+	file.onchange = function(){
+		var _file = this.files[0];
+		UploadClient.initFile(config, function(uploadFile){
+			uploadFile.upload(_file, callback);
+			cancelBtn.onclick = function(){
+				uploadFile.cancel();
+			};
+		});
+	};
+
+
+//---IMAGE----------------------------------------------------------------------------------------------------
+
+	var image = document.getElementById('image-Id');
+	var imgConfig = {
+				domain: 'http://upload.qiniu.com/putb64/-1',
+			 	data: UploadClient.dataType.data,
+				getToken: function(callback){
+					var token = "livk5rb3__JZjCtEiMxX";
+					callback(token);
+				}
+			 };
+
+		image.onclick = function(){
+			UploadClient.initImgBase64(imgConfig, function(uploadFile){
+				uploadFile.upload(base64, callback);
+			});
+		};
+	var base64 = "iVBORw0KGgoAAAANSUhEUgAAAGQAAADwCAYAAAD";
+
+</script>
+
+</html>
