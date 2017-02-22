@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>canvas</title>
+</head>
+<body>
+
+<input type="file" id="file" />
+
+<img src="" alt="" id="target">
+
+<script src="upload.js"></script>
+<script>
+//三个条件会同时生效，按照压缩比例最小的一个处理
+var config = {
+	maxWidth : 600,
+	maxHeight : 600,
+	maxSize : 2000  //K
+}
+var target = document.getElementById("target");
+var node = document.getElementById("file");
+node.onchange = function(e){
+	var file = this.files[0];
+	
+	window.UploadFile.resize(file,config,function(imageData){
+		target.src = imageData;
+		console.log(imageData)
+	});
+}
+</script>
+</body>
+</html>
