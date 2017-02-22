@@ -12,16 +12,11 @@
 
 ## 2. 初始化
 
-使用腾讯云必须实现 `refreshSign` 方法，否则将上传失败。
-
 ```js
+// 默认配置
 var config = {
     domain: '', // 必须设置文件服务器地址
-    refreshSign: function(callabck) { // 使用腾讯云必须实现此方法，否则将上传失败
-        // 获取签名和完整的 URL。
-        // 将url 和 sign 传入回调函数 cb 。
-        cb({path:'上传完整地址', sign:'签名'});
-    },
+    refreshSign: function(callabck) {},
     file_data_name: 'file', // 文件对象的 key 
     base64_size: 10, // 单位 MB 
     chunk_size: 10, // 单位 MB 
@@ -35,6 +30,15 @@ var config = {
     data: UploadClient.dataType.form // 提供：form、json、data 三种数据直传方式
 };
 var fileUpload = UploadFile.init(config);
+```
+
+使用腾讯云必须实现 `refreshSign` 方法，否则将上传失败。
+```js
+refreshSign: function(callabck) { // 使用腾讯云必须实现此方法，否则将上传失败
+    // 获取签名和完整的 URL。
+    // 将url 和 sign 传入回调函数 cb 。
+    cb({path:'上传完整地址', sign:'签名'});
+}
 ```
 
 ## 3. 上传文件
