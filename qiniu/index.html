@@ -77,21 +77,28 @@
 			}
 		 };
 	var callback = {
-			onError	: function (errorCode) { 
-				console.log(errorCode);
-			},
-			onProgress : function (loaded, total) {
-				var percent = Math.floor(loaded/total*100);
-				var progressBar 	= document.getElementById('progressBar'), 
-					progressContent = document.getElementById('progressContent');
-					progressBar.style.width = percent + '%';
-	        		progressContent.innerHTML = percent + "%";
-			},
-			onCompleted : function (data) { 
-				document.getElementById('success-log').innerHTML += JSON.stringify(data) + '</br>';
-				// document.getElementById('showImage').src = 'data:image/png;base64,' + data.thumbnail;
-			} 
-	 };
+		onError	: function (errorCode) { 
+			console.log(errorCode);
+		},
+		onProgress : function (loaded, total) {
+			var percent = Math.floor(loaded/total*100);
+			var progressBar 	= document.getElementById('progressBar'), 
+				progressContent = document.getElementById('progressContent');
+				progressBar.style.width = percent + '%';
+        		progressContent.innerHTML = percent + "%";
+		},
+		onCompleted : function (data) { 
+			console.log("upload completed");
+			console.log(data);
+			/*
+			缩略图： var thumbnail = 'data:image/png;base64,' + data.thumbnail;
+			获取Url：var sourceLink = domain +"/"+ data.key; 
+
+			七牛文档：https://developer.qiniu.com/kodo/sdk/javascript
+			*/
+		} 
+	};
+
 
 	var file = document.getElementById("file-Id");
 	var cancelBtn = document.getElementById('cancel-Id');
@@ -113,7 +120,7 @@
 				domain: 'http://upload.qiniu.com/putb64/-1',
 			 	data: UploadClient.dataType.data,
 				getToken: function(callback){
-					var token = "livk5rb3__JZjCtEiMxX";
+					var token = "livk5rb3__JZjCtEiMxXpQ8QscLxbNLehwhHySnX:9-jYMEuXSe3iPwtenV4M6cDLUBc=:eyJzY29wZSI6InJvbmdjbG91ZC1pbWFnZSIsInJldHVybkJvZHkiOiJ7XCJuYW1lXCI6ICQoZm5hbWUpLFwic2l6ZVwiOiAkKGZzaXplKSxcIndcIjogJChpbWFnZUluZm8ud2lkdGgpLFwiaFwiOiAkKGltYWdlSW5mby5oZWlnaHQpLFwiaGFzaFwiOiAkKGV0YWcpfSIsImRlYWRsaW5lIjoxNDg3ODIyNzkwfQ==";
 					callback(token);
 				}
 			 };
