@@ -205,7 +205,8 @@
 		var file = document.getElementById("file-Id");
 
 		var config = { 
-			domain: 'https://up.qbox.me',
+			domain: 'http://upload.qiniu.com',
+			fileType: RongIMLib.FileType.IMAGE,
 			getToken: function(callback){
 				/****************************
 				 * 使用融云文件存储注意事项：
@@ -213,8 +214,7 @@
 				 * 2、文件不可迁移。
 				 ****************************
 				 */
-				var fileType = RongIMLib.FileType.FILE;
-				im.getFileToken(fileType, {
+				im.getFileToken(this.fileType, {
 					onSuccess: function(data){
 						callback(data.token);
 					},
@@ -227,6 +227,7 @@
 
 		var initType = {
 			file: function(_file){
+				config.fileType = RongIMLib.FileType.FILE;
 				UploadClient.initFile(config, function(uploadFile){
 					uploadFile.upload(_file, callback);
 				});
