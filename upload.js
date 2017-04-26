@@ -191,14 +191,16 @@
 			*/ 
 
 			var supportTypes = {
-				"image/jpeg" : true,
+				"image/jpg" : true,
 				"image/png" : true,
 				"image/webp" : supportWebP()
 			};
-			var exportType = "image/png";
-			if(supportTypes[type]){
-				exportType = type;
-			} 
+			// var exportType = "image/png";
+			// if(supportTypes[type]){
+			// 	exportType = type;
+			// } 
+			// 多端一致，缩略图必须是 jpg 
+			var exportType = "image/jpg";
 			var newImageData = canvas.toDataURL(exportType);
 			return newImageData;
 		}

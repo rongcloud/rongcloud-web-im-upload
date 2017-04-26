@@ -72,7 +72,7 @@
                 throw new Error(e);
             }
         };
-        img.src = typeof file == 'string' ? 'data:image/png;base64,' + file : getBlobUrl(file);
+        img.src = typeof file == 'string' ? 'data:image/jpg;base64,' + file : getBlobUrl(file);
     };
 
     var _compress = function(data, callback) {
