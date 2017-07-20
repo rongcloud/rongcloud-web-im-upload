@@ -161,7 +161,7 @@
 		reader.onload = function(evt){
 			var imageData = evt.target.result;
 			config._total = evt.total; //获取图片体积
-			resizeBase64(imageData, config, callback);
+			compress(imageData, config, callback);
 		}
 	}
 
