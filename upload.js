@@ -150,34 +150,58 @@
 		return ratio;
 	}
 
-	function resize(file,config,callback){
+	function resize(file, config, callback){
 		//file对象没有高宽
-		var type = file.type; //image format
-		var canvas = document.createElement("canvas");
+		config = config || {};
+		config.originType = file.type; //image format;
 
 		var reader = new FileReader();
 
     	reader.readAsDataURL(file);
 		reader.onload = function(evt){
 			var imageData = evt.target.result;
-			var img = new Image();
-			img.src  = imageData;
+			config._total = evt.total; //获取图片体积
+			resizeBase64(imageData, config, callback);
+		}
+	}
+
+	function resizeBase64(imageData, config, callback){
+		/*
+		imageData format = "data:image/jpeg;base64,/9j/………………………………"
+		*/ 
+		config = config || {};
+		config.originType = imageData.split(";")[0].split("data:")[1]; //image format;
+
+		config._total = imageData.length*0.75  //base64体积用字符串长度期待，貌似有问题
+
+		compress(imageData, config, callback);
+	}
+
+	//所有的压缩裁剪，都不过是绘制和导出，只是尺寸和坐标不同
+	function compress(imageData, config, callback){
+		var img = new Image();
+		img.src  = imageData;
+
+		//通过加载渲染获取高宽
+		img.onload = function(){
 			var width = img.width;
 			var height = img.height;
 			var imageInfo = {
 				width : width,
 				height : height,
-				size : evt.total
+				size : config._total
 			}
-			var ratio = getResizeRatio(imageInfo,config);
-			var newImageData = imageData;
-			if(ratio < 1){
-				newImageData = compress(img, width*ratio, height*ratio);;
-			}
-			callback(newImageData);
-		}
 
-		function compress(img, width, height){
+			//获取压缩比例
+			var ratio = getResizeRatio(imageInfo,config);
+			if(ratio >= 1){
+				callback(imageData);
+				return;
+			}
+
+			width = width*ratio;
+			height = height*ratio;
+			var canvas = document.createElement("canvas");
 				canvas.width = width;
 				canvas.height = height;
 
@@ -195,26 +219,27 @@
 				"image/png" : true,
 				"image/webp" : supportWebP()
 			};
-			var exportType = "image/png";
-			if(supportTypes[type]){
-				exportType = type;
+			var exportType = config.type || config.originType;
+			if(!supportTypes[exportType]){
+				exportType = "image/png";
 			} 
 			var newImageData = canvas.toDataURL(exportType);
-			return newImageData;
+			callback(newImageData);
 		}
+	}
 
-		function supportWebP(){
-			try{
-        		return (canvas.toDataURL('image/webp').indexOf('data:image/webp') == 0);
-    		}catch(err) {
-		        return  false;
-		    }
-		}
+	function supportWebP(){
+		try{
+    		return (canvas.toDataURL('image/webp').indexOf('data:image/webp') == 0);
+		}catch(err) {
+	        return  false;
+	    }
 	}
 
 	win.UploadFile = {
 		init: init,
 		dataType: dataType,
-		resize : resize
+		resize : resize,
+		resizeBase64 : resizeBase64
 	};
 })(window);

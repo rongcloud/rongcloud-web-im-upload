@@ -2,28 +2,52 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>canvas</title>
+<title>图片压缩demo</title>
 </head>
 <body>
 
-<input type="file" id="file" />
+<h1>图片压缩demo</h1>
+
+选择图片进行压缩：<input type="file" id="file" />
+
+<p><input type="button" value="压缩base64" onclick="resizeBase64()"></p>
 
 <img src="" alt="" id="target">
 
+<script src="base64.json"></script>
 <script src="upload.js"></script>
 <script>
-//三个条件会同时生效，按照压缩比例最小的一个处理
-var config = {
-	maxWidth : 600,
-	maxHeight : 600,
-	maxSize : 2000  //K
-}
+/*
+三个条件会同时生效，按照压缩比例最小的一个处理
+type = "image/jpeg"/"image/png"/"image/webp",如果当前浏览器不支持指定类型，会自动调整
+*/
 var target = document.getElementById("target");
+
 var node = document.getElementById("file");
 node.onchange = function(e){
 	var file = this.files[0];
-	
+	var config = {
+		type : "image/jpeg",
+		maxWidth : 600,
+		maxHeight : 600,
+		maxSize : 100  //K
+	}	
 	window.UploadFile.resize(file,config,function(imageData){
+		target.src = imageData;
+		console.log(imageData)
+	});
+}
+
+
+function resizeBase64(){
+	//imageBase64 form file base64.json
+	var config = {
+		type : "image/jpeg",
+		maxWidth : 300,
+		maxHeight : 300,
+		maxSize : 60  //K
+	}
+	window.UploadFile.resizeBase64(imageBase64,config,function(imageData){
 		target.src = imageData;
 		console.log(imageData)
 	});
