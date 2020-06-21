@@ -1,10 +1,21 @@
 (function(win) {
+	var uploadFile, uploadOptions;
+	var Conf = {
+		BOS_CHUNCK_SIZE: 5 * 1024 * 1024 * 1024, // 上传超过5GB大小的文件
+	}
+	var PROTOCOL_HTTP = 'http://', PROTOCOL_HTTPS = 'https://';
 	function forEach(m, callback) {
 		for (var key in m) {
 			callback(key, m[key]);
 		}
 	}
-
+	function getProtocol() {
+		var protocol = PROTOCOL_HTTPS;
+		if(location.protocol == 'http:'){
+			protocol = PROTOCOL_HTTP;
+		}
+		return protocol;
+	}
 	function buildUrl(url, items) {
 		var query = '';
 		forEach(items, function(name, value) {
@@ -132,7 +143,8 @@
 			},
 			multi_parmas: opts.multi_parmas,
 			support_options: true,
-			stream: true
+      stream: true,
+      uploadHost: opts.uploadHost
 		};
 		uploadData(data.ctx, options, {
 			onCompleted: function(res) {
@@ -172,7 +184,11 @@
 		};
 		opts.isChunk = true;
 		uploadData(chunkBlob, opts, {
-			onCompleted: function(chunkRes) {
+			onCompleted: function(chunkRes, isBosUploadSuccess) {
+				if(isBosUploadSuccess){
+					callback.onCompleted(chunkRes);
+					return;
+				}
 				offset += curChunkSize;
 				// callback.onProgress(Math.floor((chunk + 1) / chunks * blob.size), blob.size);
 				ctxStore[blob.uniqueName] = ctxStore[blob.uniqueName] || [];
@@ -204,9 +220,9 @@
 			onError: function() {
 				throw new Error('qiniu uploadChunk error');
 			},
-			onProgress: function(chunkLoaded, total) {
+			onProgress: function(chunkLoaded, total, isBosProcess) {
 				var loaded = chunkLoaded + offset;
-				callback.onProgress(loaded, opts.filesize);
+				callback.onProgress(loaded, opts.filesize, isBosProcess);
 			},
 			onOpen: function(xhr) {
 				callback.onOpen(xhr);
@@ -214,7 +230,46 @@
 		});
 	}
 
-	function uploadData(data, options, callback) {
+	function uploadBos(file, options, callback) {
+		var params = options || {};
+		var file = file || uploadFile;
+		var options = options || uploadOptions;
+		var xhr = new XMLHttpRequest();
+		var protocol = getProtocol();
+		var url = protocol + params.uploadHost.bos + params.bosUploadPath;
+		var bosHeader = params.bosHeader || {};
+		var data = {
+			filename: options.unique_value || file.uniqueName,
+			name: file.name,
+			downloadUrl: url,
+			isBosRes: true
+		};
+		if (xhr.upload && options.support_options) {
+			xhr.upload.onprogress = function(event) {
+				callback.onProgress(event.loaded, event.total, true);
+			};
+		}
+		xhr.onreadystatechange = function() {
+			if (xhr.readyState == 4) {
+				var result = xhr.responseText || "{}";
+				result = JSON.parse(result);
+				result.filename = options.unique_value;
+				if(xhr.status === 200) {
+					var isBosUploadSuccess = true;
+					callback.onCompleted(data, isBosUploadSuccess);
+				}else {
+					callback.onError('upload fail')
+				}
+				
+			}
+		};
+		xhr.open(options.method, url, true);
+		xhr.setRequestHeader('authorization', bosHeader.bosToken);
+		xhr.setRequestHeader('x-bce-date', bosHeader.bosDate);
+		xhr.send(file);
+	}
+
+	function uploadData(data, options, callback, file) {
 		var xhr = new XMLHttpRequest();
 		if (xhr.upload && options.support_options) {
 			xhr.upload.onprogress = function(event) {
@@ -227,11 +282,17 @@
 				var result = xhr.responseText || "{}";
 				result = JSON.parse(result);
 				result.filename = options.unique_value;
-				callback.onCompleted(result);
+				if(xhr.status === 200){
+					callback.onCompleted(result);
+				}else {
+					var isLessThanBosLimit = uploadFile.size < Conf.BOS_CHUNCK_SIZE
+					isLessThanBosLimit && uploadBos(uploadFile, options, callback);
+				}
 			}
 		};
-
-		var url = options.domain;
+		
+		var issuedQnUploadHost = PROTOCOL_HTTPS + options.uploadHost.qiniu;
+		var url = options.domain || issuedQnUploadHost;
 		if (options.isChunk) {
 			url += '/mkblk/' + data.size;
 			url = buildUrl(url, options.multi_parmas);
@@ -251,6 +312,7 @@
 	}
 
 	function uploadQiniu(file, opts, callback) {
+		uploadFile = file, uploadOptions = opts;
 		if (file.size && opts.chunk_size < file.size) {
 			var uniqueName = opts['genUId'](file);
 			var suffix = file.name.substr(file.name.lastIndexOf('.'));
@@ -260,7 +322,7 @@
 			uploadNextChunk(file, opts, callback);
 		} else {
 			var data = opts['data'](file, opts);
-			uploadData(data, opts, callback);
+			uploadData(data, opts, callback, file);
 		}
 	}
 	win.uploadProcess = uploadQiniu;

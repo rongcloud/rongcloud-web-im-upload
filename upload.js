@@ -24,6 +24,7 @@
 			unique_key: 'key',
 			base64_size: 4 * 1024 * 1024,
 			chunk_size: 4 * 1024 * 1024,
+			bos_chunk_size: 4 * 1024 * 1024 * 1024, // 上传超过5GB大小的文件
 			headers: {},
 			multi_parmas: {},
 			query: {},
@@ -80,6 +81,8 @@
 		return file;
 	}
 
+	var preLoaded = 0, realLoaded;
+
 	function Upload(options) {
 		this.options = mergeOption(options);
 
@@ -97,8 +100,16 @@
 			}
 			var me = this;
 			uploadProcess(file, this.options, {
-				onProgress: function(loaded, total) {
-					callback.onProgress(loaded, total);
+				onProgress: function(loaded, total, isBosProcess) {
+					realLoaded = loaded;
+					if(isBosProcess){ //说明启动了 bos 上传
+						realIncrease = loaded/total * (total-preLoaded);
+						realLoaded = preLoaded + realIncrease;
+					}
+					callback.onProgress(realLoaded, total);
+					if(!isBosProcess) {
+						preLoaded = realLoaded;
+					}
 				},
 				onCompleted: function(data) {
 					callback.onCompleted(data);
