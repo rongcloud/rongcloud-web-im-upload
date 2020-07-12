@@ -6,7 +6,7 @@
     <script src = "./qiniu.js"></script>
     <script src = "../upload.js"></script>
     <script src="./init.js"></script>
-    <script src='//cdn.ronghub.com/RongIMLib-2.2.5.min.js'></script>
+    <script src='//cdn.ronghub.com/RongIMLib-2.5.8.js'></script>
    <style type = "text/css">
 	.container{
 		position: absolute; 
@@ -205,7 +205,7 @@
 		var file = document.getElementById("file-Id");
 
 		var config = { 
-			domain: 'https://upload.qiniu.com',
+			domain: 'https://upload.qiniup.com',
 			fileType: RongIMLib.FileType.IMAGE,
 			getToken: function(callback){
 				/****************************
@@ -216,7 +216,7 @@
 				 */
 				im.getFileToken(this.fileType, {
 					onSuccess: function(data){
-						callback(data.token);
+						callback(data.token, data);
 					},
 					onError: function(error){
 						showResult('getFileToken error:' + error);
