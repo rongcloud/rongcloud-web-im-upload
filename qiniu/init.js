@@ -86,13 +86,9 @@
   _init = function(config, callback) {
       if (config.getToken) {
           config.getToken(function(token, data) {
+              data = data || {}
               config.multi_parmas || (config.multi_parmas = {});
               config.multi_parmas.token = token;
-              // config.multi_parmas.bosHost = data.bosHost;
-              // config.multi_parmas.qnHost = data.qnHost;
-              // config.multi_parmas.bosDate = data.bosDate;
-              // config.multi_parmas.bosToken = data.bosToken;
-              // config.multi_parmas.bosPath = data.path;
               config.uploadHost || (config.uploadHost = {});
               config.uploadHost['qiniu'] = data.qiniu;
               config.uploadHost['bos'] = data.bos;

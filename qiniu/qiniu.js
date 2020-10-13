@@ -236,6 +236,9 @@
 		var options = options || uploadOptions;
 		var xhr = new XMLHttpRequest();
 		var protocol = getProtocol();
+		if (!params.uploadHost.bos && !params.bosUploadPath) {
+			return
+		}
 		var url = protocol + params.uploadHost.bos + params.bosUploadPath;
 		var bosHeader = params.bosHeader || {};
 		var data = {
