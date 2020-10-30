@@ -1,5 +1,11 @@
 (function(win) {
-	var uploadFile, uploadOptions;
+	var uploadFile, uploadOptions, isStreamUpload;
+	var uploadOrderObject = {
+		'qiniu': uploadQiniu,
+		'baidu': uploadBos,
+		'aliyun': uploadAliyun
+	};
+	var uploadOrderList = [];
 	var Conf = {
 		BOS_CHUNCK_SIZE: 5 * 1024 * 1024 * 1024, // 上传超过5GB大小的文件
 	}
@@ -146,7 +152,7 @@
       stream: true,
       uploadHost: opts.uploadHost
 		};
-		uploadData(data.ctx, options, {
+		uploadQiniu(data.ctx, options, {
 			onCompleted: function(res) {
 				res.filename = data.filename;
 				res.name = data.name;
@@ -159,7 +165,7 @@
 			onOpen: function(xhr) {
 				callback.onOpen(xhr);
 			}
-		});
+		}, uploadFile);
 	}
 
 	var offset = 0,
@@ -183,7 +189,7 @@
 			'Content-Type': 'application/octet-stream'
 		};
 		opts.isChunk = true;
-		uploadData(chunkBlob, opts, {
+		uploadQiniu(chunkBlob, opts, {
 			onCompleted: function(chunkRes, isBosUploadSuccess) {
 				if(isBosUploadSuccess){
 					callback.onCompleted(chunkRes);
@@ -227,21 +233,25 @@
 			onOpen: function(xhr) {
 				callback.onOpen(xhr);
 			}
-		});
+		}, uploadFile);
 	}
 
-	function uploadBos(file, options, callback) {
+	function uploadBos(data, options, callback, file) {
+		console.log(file, options)
+		if (file.size > Conf.BOS_CHUNCK_SIZE) {
+			throw('the file size is over 5GB!')
+		}
 		var params = options || {};
-		var file = file || uploadFile;
 		var options = options || uploadOptions;
 		var xhr = new XMLHttpRequest();
 		var protocol = getProtocol();
 		if (!params.uploadHost.bos && !params.bosUploadPath) {
 			return
 		}
-		var url = protocol + params.uploadHost.bos + params.bosUploadPath;
+		var url = protocol + uploadOrderList[0][1] + params.bosUploadPath;
+		uploadOrderList.shift()
 		var bosHeader = params.bosHeader || {};
-		var data = {
+		var resData = {
 			filename: options.unique_value || file.uniqueName,
 			name: file.name,
 			downloadUrl: url,
@@ -259,11 +269,12 @@
 				result.filename = options.unique_value;
 				if(xhr.status === 200) {
 					var isBosUploadSuccess = true;
-					callback.onCompleted(data, isBosUploadSuccess);
-				}else {
+					callback.onCompleted(resData, isBosUploadSuccess);
+				} else if (uploadOrderList.length) {
+					uploadOrderObject[uploadOrderList[0][0]](data, options, callback, file)
+				} else {
 					callback.onError('upload fail')
 				}
-				
 			}
 		};
 		xhr.open(options.method, url, true);
@@ -272,7 +283,17 @@
 		xhr.send(file);
 	}
 
-	function uploadData(data, options, callback, file) {
+	function uploadQiniu(data, options, callback, file) {
+		var issuedQnUploadHost = PROTOCOL_HTTPS + options.uploadHost.qiniu;
+		if (isStreamUpload) {
+			var url = options.domain
+		} else {
+			var url = getProtocol() + uploadOrderList[0][1] || issuedQnUploadHost;
+		}
+		
+		if (!isStreamUpload) {
+			uploadOrderList.shift()
+		}
 		var xhr = new XMLHttpRequest();
 		if (xhr.upload && options.support_options) {
 			xhr.upload.onprogress = function(event) {
@@ -285,17 +306,17 @@
 				var result = xhr.responseText || "{}";
 				result = JSON.parse(result);
 				result.filename = options.unique_value;
+				result.getFileUrlType = RongIMLib.UploadType.QINIU
 				if(xhr.status === 200){
 					callback.onCompleted(result);
-				}else {
-					var isLessThanBosLimit = uploadFile.size < Conf.BOS_CHUNCK_SIZE
-					isLessThanBosLimit && uploadBos(uploadFile, options, callback);
+				} else if (uploadOrderList.length) {
+					uploadOrderObject[uploadOrderList[0][0]](data, options, callback, file)
+				} else {
+					callback.onError('upload fail')
 				}
 			}
 		};
 		
-		var issuedQnUploadHost = PROTOCOL_HTTPS + options.uploadHost.qiniu;
-		var url = options.domain || issuedQnUploadHost;
 		if (options.isChunk) {
 			url += '/mkblk/' + data.size;
 			url = buildUrl(url, options.multi_parmas);
@@ -314,9 +335,75 @@
 		xhr.send(data);
 	}
 
-	function uploadQiniu(file, opts, callback) {
+	function uploadAliyun(data, options, callback, file) {
+		if (file.size > Conf.BOS_CHUNCK_SIZE) {
+			throw('the file size is over 5GB!')
+		}
+		const cloneData = new FormData();
+		cloneData.set('file', data.get('file'));
+		cloneData.set('key', data.get('key'));
+		cloneData.set('token', data.get('token'));
+		const aliHost = uploadOrderList[0][1]
+		uploadOrderList.shift()
+		var options = options || {};
+		var data = data || uploadFile;
+		var options = options || uploadOptions;
+		var xhr = new XMLHttpRequest();
+		var protocol = getProtocol();
+		var url = protocol + options.ossBucketName + '.' + aliHost;
+		if (xhr.upload && options.support_options) {
+			xhr.upload.onprogress = function(event) {
+				callback.onProgress(event.loaded, event.total);
+			};
+		}
+
+		xhr.onreadystatechange = function() {
+			if (xhr.readyState == 4) {
+				var result = xhr.responseText || "{}";
+				result = JSON.parse(result);
+				result.name = options.unique_value;
+				result.filename = options.uploadFileName; // 上传文件名
+				result.getFileUrlType = RongIMLib.UploadType.ALI
+				if(xhr.status === 200){
+					callback.onCompleted(result);
+				} else if (uploadOrderList.length) {
+					uploadOrderObject[uploadOrderList[0][0]](cloneData,  options, callback, file)
+				} else {
+					callback.onError('upload fail')
+				}
+			}
+		};
+		xhr.open(options.method, url, true);
+		var aliHeader = options.aliHeader || {};
+		data.set('OSSAccessKeyId', aliHeader.osskeyId)
+		data.set('policy', aliHeader.ossPolicy)
+		data.set('Signature', aliHeader.ossSign)
+		data.set('success_action_status', 200)
+		data.delete('key')
+		data.append('key', options.uploadFileName) // 阿里上传时传的文件名必须和获取认证时传的 key 一致
+		data.delete('file');
+		data.append('file', file);
+		xhr.send(data);
+	}
+
+	function uploadData(file, opts, callback) {
 		uploadFile = file, uploadOptions = opts;
+		const ossConfig = opts.ossConfig;
+
+		if (ossConfig) { // 配置 oss，需按权重降级上传
+			JSON.parse(ossConfig).forEach((item) => {
+				for (const key in item) {
+					if (key != 'p') {
+						uploadOrderList.push([key, item[key]])
+					}
+				}
+			});
+		} else { // 走之前的逻辑，先七牛后百度
+			uploadOrderList = [['qiniu', opts.domain], ['baidu', opts.uploadHost.bos]];
+		}
+
 		if (file.size && opts.chunk_size < file.size) {
+			isStreamUpload = true;
 			var uniqueName = opts['genUId'](file);
 			var suffix = file.name.substr(file.name.lastIndexOf('.'));
 			uniqueName = uniqueName + suffix;
@@ -324,9 +411,9 @@
 			opts.stream = true;
 			uploadNextChunk(file, opts, callback);
 		} else {
-			var data = opts['data'](file, opts);
-			uploadData(data, opts, callback, file);
+			var data = opts['data'](file, opts); // 取 formData
+			uploadOrderObject[uploadOrderList[0][0]](data, opts, callback, file)
 		}
 	}
-	win.uploadProcess = uploadQiniu;
+	win.uploadProcess = uploadData;
 })(window);

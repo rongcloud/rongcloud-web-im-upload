@@ -92,10 +92,21 @@
               config.uploadHost || (config.uploadHost = {});
               config.uploadHost['qiniu'] = data.qiniu;
               config.uploadHost['bos'] = data.bos;
+
+              config.ossConfig = data.ossConfig
+
               config.bosHeader || (config.bosHeader = {})
               config.bosHeader['bosDate'] = data.bosDate;
               config.bosHeader['bosToken'] = data.bosToken;
               config.bosUploadPath = data.path;
+
+              config.aliHeader = {}
+              config.aliHeader['osskeyId'] = data.osskeyId;
+              config.aliHeader['ossPolicy'] = data.ossPolicy;
+              config.aliHeader['ossSign'] = data.ossSign;
+              config['ossBucketName'] = data.ossBucketName;
+              config['uploadFileName'] = data.fileName;
+
               config.headers || (config.headers = {});
               if (config.base64) {
                   config.headers['Content-type'] = 'application/octet-stream';
@@ -178,8 +189,8 @@
   var initImage = function(config, callback) {
       _init(config, function(instance) {
           var compress = {
-              maxHeight: config.height || 240,
-              maxWidth: config.width || 240,
+              maxHeight: config.height || 160,
+              maxWidth: config.width || 160,
               quality: config.quality || 0.5,
               scale: config.scale || 2.4
           };

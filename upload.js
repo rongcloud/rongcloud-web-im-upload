@@ -52,11 +52,11 @@
 		if (opts.unique_key) {
 			var suffix = file.name.substr(file.name.lastIndexOf('.'));
 			var unique_value = genUId() + suffix;
-			form.append(opts.unique_key, unique_value);
+			form.append(opts.unique_key, unique_value); // 设置 key
 			opts.unique_value = unique_value;
 		}
-		form.append(opts.file_data_name, file);
-		mEach(opts.multi_parmas, function(key, value) {
+		form.append(opts.file_data_name, file); // 设置 file
+		mEach(opts.multi_parmas, function(key, value) { // 设置 token
 			form.append(key, value);
 		});
 		return form;
