@@ -10,7 +10,7 @@
     <input id="uploadEl" type="file" />
     <div id="downloadUrlEl"></div>
     <script src="./RongIMLib-4.1.0.js"></script>
-    <script src = "./qiniu.js"></script>
+    <script src = "./send-data.js"></script>
     <script src = "../upload.js"></script>
     <script src="./init.js"></script>
     <style type = "text/css">
@@ -84,7 +84,7 @@
       }
       function getFileUrl(data, fileType) {
         return new Promise((resolve, reject) => {
-          im.getFileUrl(fileType, data.getFileUrlType, data.filename, data.name, data).then((rs) => {
+          im.getFileUrl(fileType, data.filename, data.name, data.uploadMethod, data).then((rs) => {
             console.log('文件 url 为: ', rs.downloadUrl);
             resolve(rs);
           }).catch((error) => {

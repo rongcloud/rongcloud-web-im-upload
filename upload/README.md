@@ -1,4 +1,4 @@
-### 上传插件使用说明 - 七牛云
+### 上传插件使用说明
 
 1、文档请参考: [https://docs.rongcloud.cn/im/imlib/web/plugin/upload](https://docs.rongcloud.cn/im/imlib/web/plugin/upload)
 

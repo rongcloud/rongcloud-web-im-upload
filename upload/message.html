@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title> Qiniu - Upload </title>
-    <script src = "./qiniu.js"></script>
+    <script src = "./send-data.js"></script>
     <script src = "../upload.js"></script>
     <script src="./init.js"></script>
-		<script src="./RongIMLib-2.6.0.js"></script>
+		<!-- <script src='//cdn.ronghub.com/RongIMLib-2.5.8.js'></script> -->
+		<script src="./protobuf-2.4.1.min.js"></script>
+		<script src='./RongIMLib-2.5.13.js'></script>
    <style type = "text/css">
 	.container{
 		position: absolute; 
@@ -151,7 +153,7 @@
 					onError: function(error){
 						showResult('getFileToken error:' + error);
 					}
-				}, data.getFileUrlType, data);
+				}, data.uploadMethod, data);
 			},
 			image: function(data){
 				var fileType = RongIMLib.FileType.IMAGE;
@@ -164,7 +166,7 @@
 					onError: function(error){
 						showResult('getFileToken error:' + error);
 					}
-				}, data.getFileUrlType, data);
+				}, data.uploadMethod, data);
 			}
 		};
 		var getFileUrl = function(data){
@@ -250,7 +252,8 @@
 		var appkey = 'c9kqb3rdkbb8j';
 		var navi = 'http://mwga.dy01-navqa.cn.ronghub.com';
 		RongIMLib.RongIMClient.init(appkey, null, {
-			navi
+			navi,
+			isPolling: true
 		});
 
 		RongIMLib.RongIMClient.setConnectionStatusListener({

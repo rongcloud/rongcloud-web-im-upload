@@ -306,7 +306,7 @@
 				var result = xhr.responseText || "{}";
 				result = JSON.parse(result);
 				result.filename = options.unique_value;
-				result.getFileUrlType = RongIMLib.UploadMethod.QINIU
+				result.uploadMethod = RongIMLib.UploadMethod.QINIU
 				if(xhr.status === 200){
 					callback.onCompleted(result);
 				} else if (uploadOrderList.length) {
@@ -363,7 +363,7 @@
 				result = JSON.parse(result);
 				result.name = options.unique_value;
 				result.filename = options.uploadFileName; // 上传文件名
-				result.getFileUrlType = RongIMLib.UploadMethod.ALI
+				result.uploadMethod = RongIMLib.UploadMethod.ALI
 				if(xhr.status === 200){
 					callback.onCompleted(result);
 				} else if (uploadOrderList.length) {
@@ -403,10 +403,11 @@
 					}
 				}
 			});
-			tempArr.forEach(function(item) { // 权重为负数或不从 1 开始的正数
+			tempArr.forEach(function(item) { // 过滤权重值不从 1 开始的情况
 				item ? uploadOrderList.push(item) : '';
 			})
-			if (ossConfig.length != tempArr.length) { // 权重无值或相同的情况
+			
+			if (ossConfig.length != uploadOrderList.length) { // 权重无值或相同，无法比较的情况
 				uploadOrderList = [['qiniu', opts.domain], ['baidu', opts.uploadHost.bos], ['aliyun', aliyunUrl]];
 			}
 		} else { // 走之前的逻辑，先七牛后百度
