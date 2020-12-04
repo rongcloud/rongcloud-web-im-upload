@@ -17,7 +17,7 @@
 	}
 	function getProtocol() {
 		var protocol = PROTOCOL_HTTPS;
-		if(location.protocol == 'http:'){
+		if(location.protocol == 'http:' || location.protocol == 'file:'){
 			protocol = PROTOCOL_HTTP;
 		}
 		return protocol;
@@ -286,7 +286,7 @@
 	function uploadQiniu(data, options, callback, file) {
 		var issuedQnUploadHost = PROTOCOL_HTTPS + options.uploadHost.qiniu;
 		if (isStreamUpload) {
-			var url = options.domain
+			var url =  getProtocol() + options.domain
 		} else {
 			var url = getProtocol() + uploadOrderList[0][1] || issuedQnUploadHost;
 		}
@@ -306,7 +306,7 @@
 				var result = xhr.responseText || "{}";
 				result = JSON.parse(result);
 				result.filename = options.unique_value;
-				result.getFileUrlType = RongIMLib.UploadType.QINIU
+				result.getFileUrlType = RongIMLib.UploadMethod.QINIU
 				if(xhr.status === 200){
 					callback.onCompleted(result);
 				} else if (uploadOrderList.length) {
@@ -363,7 +363,7 @@
 				result = JSON.parse(result);
 				result.name = options.unique_value;
 				result.filename = options.uploadFileName; // 上传文件名
-				result.getFileUrlType = RongIMLib.UploadType.ALI
+				result.getFileUrlType = RongIMLib.UploadMethod.ALI
 				if(xhr.status === 200){
 					callback.onCompleted(result);
 				} else if (uploadOrderList.length) {
@@ -388,16 +388,27 @@
 
 	function uploadData(file, opts, callback) {
 		uploadFile = file, uploadOptions = opts;
-		const ossConfig = opts.ossConfig;
-
-		if (ossConfig) { // 配置 oss，需按权重降级上传
-			JSON.parse(ossConfig).forEach((item) => {
+		if (opts.ossConfig) { // 配置 oss，需按权重降级上传
+			const ossConfig = JSON.parse(opts.ossConfig);
+			let aliyunUrl = '';
+			let tempArr = [];
+			ossConfig.forEach((item) => {
+				const index = Number(item.p) - 1;
 				for (const key in item) {
+					if (key === 'aliyun') {
+						aliyunUrl = item[key];
+					}
 					if (key != 'p') {
-						uploadOrderList.push([key, item[key]])
+						tempArr[index] = [key, item[key]]
 					}
 				}
 			});
+			tempArr.forEach(function(item) { // 权重为负数或不从 1 开始的正数
+				item ? uploadOrderList.push(item) : '';
+			})
+			if (ossConfig.length != tempArr.length) { // 权重无值或相同的情况
+				uploadOrderList = [['qiniu', opts.domain], ['baidu', opts.uploadHost.bos], ['aliyun', aliyunUrl]];
+			}
 		} else { // 走之前的逻辑，先七牛后百度
 			uploadOrderList = [['qiniu', opts.domain], ['baidu', opts.uploadHost.bos]];
 		}

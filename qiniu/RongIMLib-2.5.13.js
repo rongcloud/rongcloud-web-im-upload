@@ -2,8 +2,8 @@
     说明: 请勿修改 header.js 和 footer.js
     用途: 自动拼接暴露方式
     命令: grunt release 中 concat
-    Release Date: Fri Oct 30 2020 18:11:15 GMT+0800 (GMT+08:00)
-    CodeVersion: 18c25320131ba9832d957d9bc4a73ee9d5e0237d
+    Release Date: Tue Nov 10 2020 14:34:13 GMT+0800 (GMT+08:00)
+    CodeVersion: 4599db6c317f8369d6d368d5bac59ce41920016c
 */
 (function(global, factory) {
     if (typeof exports === 'object' && typeof module !== 'undefined') {
@@ -25,7 +25,7 @@
     }
 })(window, function(){
 // {WebStart} WebSDK 内容开始的标识, 方便小程序 SDK 定位
-// console.warn('SDK VERSION:', '18c25320131ba9832d957d9bc4a73ee9d5e0237d')
+// console.warn('SDK VERSION:', '4599db6c317f8369d6d368d5bac59ce41920016c')
 
 var Polling = {
         SetUserStatusInput: function(){
@@ -596,6 +596,9 @@ var Polling = {
             this.setType = function (b) {
                 a.type = b;
             }
+            this.setKey = function (b) {
+                a.key = b;
+            }
             this.toArrayBuffer = function () {
                 return a
             }
@@ -608,6 +611,27 @@ var Polling = {
             this.setToken = function (b) {
                 a.token = b;
             };
+            this.setBosToken = function (b) {
+                a.bosToken = b;
+            }
+            this.setBosDate = function (b) {
+                a.bosDate = b;
+            }
+            this.setPath = function (b) {
+                a.path = b;
+            }
+            this.setOsskeyId = function (b) {
+                a.osskeyId = b;
+            }
+            this.setOssPolicy = function (b) {
+                a.ossPolicy = b;
+            }
+            this.setOssSign = function (b) {
+                a.ossSign = b;
+            }
+            this.setOssBucketName = function (b) {
+                a.ossBucketName = b;
+            }
             this.toArrayBuffer = function () {
                 return a
             }
@@ -627,7 +651,31 @@ var Polling = {
                 return a
             }
         },
+        GetDownloadUrlInput: function () {
+            var a = {};
+            this.setType = function (b) {
+                a.type = b;
+            };
+            this.setKey = function (b) {
+                a.key = b;
+            };
+            this.setFileName = function(b){
+                a.fileName = b;
+            };
+            this.toArrayBuffer = function () {
+                return a
+            }
+        },
         GetQNdownloadUrlOutput: function () {
+            var a = {};
+            this.setDownloadUrl = function (b) {
+                a.downloadUrl = b;
+            };
+            this.toArrayBuffer = function () {
+                return a
+            }
+        },
+        GetDownloadUrlOutput: function () {
             var a = {};
             this.setDownloadUrl = function (b) {
                 a.downloadUrl = b;
@@ -2226,11 +2274,11 @@ var RongIMLib;
         MsgEpansionLength[MsgEpansionLength["VALUE"] = 64] = "VALUE"; // 扩展 value 长度限制
     })(RongIMLib.MsgEpansionLength || (RongIMLib.MsgEpansionLength = {}));
     var MsgEpansionLength = RongIMLib.MsgEpansionLength;
-    (function (UploadType) {
-        UploadType[UploadType["QINIU"] = 1] = "QINIU";
-        UploadType[UploadType["ALI"] = 2] = "ALI";
-    })(RongIMLib.UploadType || (RongIMLib.UploadType = {}));
-    var UploadType = RongIMLib.UploadType;
+    (function (UploadMethod) {
+        UploadMethod[UploadMethod["QINIU"] = 1] = "QINIU";
+        UploadMethod[UploadMethod["ALI"] = 2] = "ALI";
+    })(RongIMLib.UploadMethod || (RongIMLib.UploadMethod = {}));
+    var UploadMethod = RongIMLib.UploadMethod;
 })(RongIMLib || (RongIMLib = {}));
 var RongIMLib;
 (function (RongIMLib) {
@@ -4504,9 +4552,9 @@ var RongIMLib;
             RongIMLib.CheckParam.getInstance().check(["number", "object", "undefined|null|string"], "getQngetFileTokenTkn", false, arguments);
             RongIMClient._dataAccessProvider.getFileToken(fileType, RongIMClient.logCallback(callback, "getFileToken"), fileName);
         };
-        RongIMClient.prototype.getFileUrl = function (fileType, fileName, oriName, callback, uploadType, data) {
-            RongIMLib.CheckParam.getInstance().check(["number", "string", "string|global|object|null", "object", "number", "undefined|null|object"], "getFileUrl", false, arguments);
-            RongIMClient._dataAccessProvider.getFileUrl(fileType, fileName, oriName, RongIMClient.logCallback(callback, "getFileUrl"), uploadType, data);
+        RongIMClient.prototype.getFileUrl = function (fileType, fileName, oriName, callback, uploadMethod, data) {
+            RongIMLib.CheckParam.getInstance().check(["number", "string", "string|global|object|null", "object", "number|undefined", "undefined|null|object"], "getFileUrl", false, arguments);
+            RongIMClient._dataAccessProvider.getFileUrl(fileType, fileName, oriName, RongIMClient.logCallback(callback, "getFileUrl"), uploadMethod, data);
         };
         ;
         // #endregion Blacklist
@@ -11183,7 +11231,7 @@ var RongIMLib;
                 }
             }, "GetQNupTokenOutput");
         };
-        ServerDataProvider.prototype.getFileUrl = function (fileType, fileName, oriName, callback, uploadType, data) {
+        ServerDataProvider.prototype.getFileUrl = function (fileType, fileName, oriName, callback, uploadMethod, data) {
             var data = data || {};
             if (!(/(1|2|3|4)/.test(fileType.toString()))) {
                 setTimeout(function () {
@@ -11195,7 +11243,7 @@ var RongIMLib;
                 callback.onSuccess(data);
                 return;
             }
-            if (uploadType === RongIMLib.UploadType.QINIU) {
+            if (uploadMethod === RongIMLib.UploadMethod.QINIU) {
                 var modules = new RongIMLib.RongIMClient.Protobuf.GetQNdownloadUrlInput();
                 var downloadOutput = 'GetQNdownloadUrlOutput';
                 var topicPosition = 31;

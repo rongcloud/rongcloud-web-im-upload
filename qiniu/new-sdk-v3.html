@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+  </head>
+  <body>
+    <div id="innerText"></div>
+    <input id="uploadEl" type="file" />
+    <div id="downloadUrlEl"></div>
+    <script src="./RongIMLib-4.1.0.js"></script>
+    <script src = "./qiniu.js"></script>
+    <script src = "../upload.js"></script>
+    <script src="./init.js"></script>
+    <style type = "text/css">
+      #downloadUrlEl {
+        background-color: #c0c0c0;
+      }
+    </style>
+    <script>
+      const appkey = 'e0x9wycfx7flq';
+      const token = '9ccN28iR0pziygoR6Ubfj8xhbBiLX2D8RcpvmANN36M=|PK2@';
+      const navigators = ['http://navxq.rongcloud.net'];
+
+      const html = `
+        <p>appkey: ${appkey}</p>
+        <p>token: ${token}</p>
+      `;
+      document.getElementById('innerText').innerHTML = html;
+
+      let im;
+      if (appkey && token) {
+        im = RongIMLib.init({
+          appkey: appkey,
+          navigators
+        });
+        im.connect({token}).then((user) => {
+          console.log('链接成功, 链接用户 id 为: ', user.id);
+        }).catch(function(error) {
+          console.log('链接失败: ', error.code, error.msg);
+        });
+      }
+      
+      function genUploadConfig(type) {
+        let fileType;
+        if (type === 'img') {
+          fileType = RongIMLib.FILE_TYPE.IMAGE; // 图片
+        } else {
+          fileType = RongIMLib.FILE_TYPE.FILE; // 文件
+        }
+        var config = {
+          domain: 'upload.qiniup.com',
+          fileType: fileType,
+          getToken: function(callback) {
+            im.getFileToken(fileType).then(function(data) {
+              callback(data.token, data);
+            }).catch(function(error) {
+              console.log('获取上传 token 失败', error);
+            });
+          }
+        }
+        var uploadCallbacks = {
+          onProgress: function(loaded, total) {
+            var percent = Math.floor(loaded / total * 100);
+            console.log('已上传: ', percent);
+          },
+          onCompleted: function (data) {
+            // 上传完成, 调用 getFileUrl 获取文件下载 url
+            console.log('上传成功--: ', data); // data.thumbnail 可拿到缩略值
+            getFileUrl(data, fileType).then((rs) => {
+              document.getElementById('downloadUrlEl').innerHTML = `<p>上传成功</p><p>下载地址：${rs.downloadUrl}</p>`
+              console.log(rs.downloadUrl);
+            });
+          },
+          onError: function(error) {
+            console.error('上传失败', error);
+          }
+        };
+        return {
+          config,
+          uploadCallbacks
+        }
+      }
+      function getFileUrl(data, fileType) {
+        return new Promise((resolve, reject) => {
+          im.getFileUrl(fileType, data.getFileUrlType, data.filename, data.name, data).then((rs) => {
+            console.log('文件 url 为: ', rs.downloadUrl);
+            resolve(rs);
+          }).catch((error) => {
+            console.log('获取文件 url 失败', error);
+            reject();
+          });
+        })
+      }
+      function getFileType (filename) {
+        // 默认支持两种图片格式，可自行扩展
+        var imageType = {
+          'jpg': 1,
+          'png': 2
+        };
+        var index = filename.lastIndexOf('.') + 1,
+          type = filename.substring(index);
+        return type in imageType ? 'img': 'file';
+      }
+      window.onload = () => {
+        const $uploadEl = document.getElementById('uploadEl');
+        $uploadEl.onchange = (e) => {
+          console.log(e.target.files[0]);
+          const fileType = getFileType(e.target.files[0].name);
+          let {config, uploadCallbacks} = genUploadConfig(fileType);
+          var _file = event.target.files[0]; // 上传的 file 对象
+          UploadClient.initFile(config, function(uploadFile) { 
+            uploadFile.upload(_file, uploadCallbacks);
+          });
+        }
+      }
+    </script>
+  </body>
+</html>
