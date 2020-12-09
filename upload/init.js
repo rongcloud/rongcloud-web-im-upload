@@ -90,7 +90,6 @@
               config.multi_parmas || (config.multi_parmas = {});
               config.multi_parmas.token = token;
               config.uploadHost || (config.uploadHost = {});
-              config.uploadHost['qiniu'] = data.qiniu;
               config.uploadHost['bos'] = data.bos;
 
               config.ossConfig = data.ossConfig
