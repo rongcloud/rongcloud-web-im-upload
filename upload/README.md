@@ -1,6 +1,6 @@
 ### 上传插件使用说明
 
->1.从 **2020-12-10** 起，原插件中 `qiniu.js` 更名为 `send-data.js`，引入时需注意，`sdk v2 2.6.0` 以下的版本，获取文件下载地址时，不需要传 `uploadMethod`
+>从 **2020-12-10** 起，原插件中 `qiniu.js` 更名为 `send-data.js`，引入时需注意，`sdk v2 2.6.0` 以下的版本，获取文件下载地址时，不需要传 `uploadMethod`
 
 
 1、文档请参考: [https://docs.rongcloud.cn/im/imlib/web/plugin/upload](https://docs.rongcloud.cn/im/imlib/web/plugin/upload)
@@ -49,4 +49,4 @@ RongIMClient.connect(token, {
 });
 ```
 
-3. `sdk v3/v4` 可参考 `new-sdk-v4.html`
+4. `sdk v3/v4` 可参考 `new-sdk-v4.html`

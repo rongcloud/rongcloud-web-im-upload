@@ -2,4 +2,4 @@
 
 Web IM 上传组件
 
-详见: [upload 文件](upload)
+详见: [upload 文件夹](upload)
