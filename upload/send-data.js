@@ -306,7 +306,7 @@
 				var result = xhr.responseText || "{}";
 				result = JSON.parse(result);
 				result.filename = options.unique_value;
-				result.uploadMethod = RongIMLib.UploadMethod.QINIU
+				result.uploadMethod = RongIMLib.UploadMethod ? RongIMLib.UploadMethod.QINIU :''
 				if(xhr.status === 200){
 					callback.onCompleted(result);
 				} else if (uploadOrderList.length) {
@@ -363,7 +363,7 @@
 				result = JSON.parse(result);
 				result.name = options.unique_value;
 				result.filename = options.uploadFileName; // 上传文件名
-				result.uploadMethod = RongIMLib.UploadMethod.ALI
+				result.uploadMethod = RongIMLib.UploadMethod ? RongIMLib.UploadMethod.ALI : '';
 				if(xhr.status === 200){
 					callback.onCompleted(result);
 				} else if (uploadOrderList.length) {

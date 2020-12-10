@@ -6,7 +6,8 @@
     <script src = "./send-data.js"></script>
     <script src = "../upload.js"></script>
     <script src="./init.js"></script>
-		<script src="./RongIMLib-2.6.0.js"></script>
+		<!-- <script src="./RongIMLib-2.6.0.js"></script> -->
+		<script src='//cdn.ronghub.com/RongIMLib-2.5.8.js'></script>
    <style type = "text/css">
 	.container{
 		position: absolute; 
@@ -151,7 +152,7 @@
 					onError: function(error){
 						showResult('getFileToken error:' + error);
 					}
-				}, data.uploadMethod, data);
+				}, data, data.uploadMethod);
 			},
 			image: function(data){
 				var fileType = RongIMLib.FileType.IMAGE;
@@ -164,7 +165,7 @@
 					onError: function(error){
 						showResult('getFileToken error:' + error);
 					}
-				}, data.uploadMethod, data);
+				}, data, data.uploadMethod);
 			}
 		};
 		var getFileUrl = function(data){
@@ -246,13 +247,8 @@
 	};	
 
 	var connect = function(){
-		// var appkey = '8luwapkvucoil';
-		var appkey = 'c9kqb3rdkbb8j';
-		var navi = 'http://mwga.dy01-navqa.cn.ronghub.com';
-		// RongIMLib.RongIMClient.init(appkey);
-		RongIMLib.RongIMClient.init(appkey, null, {
-			navi
-		});
+		var appkey = '8luwapkvucoil';
+		RongIMLib.RongIMClient.init(appkey);
 
 		RongIMLib.RongIMClient.setConnectionStatusListener({
 		    onChanged: function (status) {
@@ -269,8 +265,7 @@
 		    }
 		});
 
-		// var token = '183RX8CR4UcXlV3cANZXnbrkPG6U/xPk3zvPIWf9le0qIwLgOI54+IqjxPVY5a9jZgJ+5WjBf5egVjidhq2Rfg==';
-		var token = 'LpyGAZhfb36+oUjOJpxS9BqovSzmOsDJH1KN8IVqBJ8=@mwga.dy01-navqa.cn.ronghub.com;mwga.dy02-navqa.cn.ronghub.com';
+		var token = '183RX8CR4UcXlV3cANZXnbrkPG6U/xPk3zvPIWf9le0qIwLgOI54+IqjxPVY5a9jZgJ+5WjBf5egVjidhq2Rfg==';
 		showResult('connecting');
 		RongIMLib.RongIMClient.connect(token, {
 	        onSuccess: function(userId) {

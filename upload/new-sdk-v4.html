@@ -19,9 +19,8 @@
       }
     </style>
     <script>
-      const appkey = 'e0x9wycfx7flq';
-      const token = '9ccN28iR0pziygoR6Ubfj8xhbBiLX2D8RcpvmANN36M=|PK2@';
-      const navigators = ['http://navxq.rongcloud.net'];
+      const appkey = '8luwapkvucoil';
+      const token = '183RX8CR4UcXlV3cANZXnbrkPG6U/xPk3zvPIWf9le0qIwLgOI54+IqjxPVY5a9jZgJ+5WjBf5egVjidhq2Rfg==';
 
       const html = `
         <p>appkey: ${appkey}</p>
@@ -32,8 +31,7 @@
       let im;
       if (appkey && token) {
         im = RongIMLib.init({
-          appkey: appkey,
-          navigators
+          appkey
         });
         im.connect({token}).then((user) => {
           console.log('链接成功, 链接用户 id 为: ', user.id);
@@ -84,7 +82,7 @@
       }
       function getFileUrl(data, fileType) {
         return new Promise((resolve, reject) => {
-          im.getFileUrl(fileType, data.filename, data.name, data.uploadMethod, data).then((rs) => {
+          im.getFileUrl(fileType, data.filename, data.name, data, data.uploadMethod).then((rs) => {
             console.log('文件 url 为: ', rs.downloadUrl);
             resolve(rs);
           }).catch((error) => {
