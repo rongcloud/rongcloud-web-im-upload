@@ -106,6 +106,14 @@
               config['ossBucketName'] = data.ossBucketName;
               config['uploadFileName'] = data.fileName;
 
+              config.s3Header = {}
+              config.s3Header['s3Credential'] = data.s3Credential;
+              config.s3Header['s3Algorithm'] = data.s3Algorithm;
+              config.s3Header['s3Date'] = data.s3Date;
+              config.s3Header['s3Policy'] = data.s3Policy;
+              config.s3Header['s3Signature'] = data.s3Signature;
+              config['s3BucketName'] = data.s3BucketName;
+
               config.headers || (config.headers = {});
               if (config.base64) {
                   config.headers['Content-type'] = 'application/octet-stream';
@@ -147,7 +155,8 @@
       });
   };
 
-  var File = function(instance) {
+  
+ var File = function(instance) {
       var me = this;
       this.instance = instance
       this.upload = function(file, callback) {

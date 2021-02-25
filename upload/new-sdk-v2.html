@@ -6,8 +6,9 @@
     <script src = "./send-data.js"></script>
     <script src = "../upload.js"></script>
     <script src="./init.js"></script>
-		<script src="./RongIMLib-2.6.0.js"></script>
-		<!-- <script src='//cdn.ronghub.com/RongIMLib-2.5.8.js'></script> -->
+	<!-- <script src="./RongIMLib-2.6.0.js"></script> -->
+	<script src="./RongIMLib.js"></script>
+	<!-- <script src='//cdn.ronghub.com/RongIMLib-2.5.8.js'></script> -->
    <style type = "text/css">
 	.container{
 		position: absolute; 
@@ -217,6 +218,7 @@
 				 */
 				im.getFileToken(this.fileType, {
 					onSuccess: function(data){
+						console.log("im.getFileToken",data);
 						callback(data.token, data);
 					},
 					onError: function(error){
@@ -248,6 +250,7 @@
 
 	var connect = function(){
 		var appkey = '8luwapkvucoil';
+		appkey='c9kqb3rdkbb8j';//测试环境
 		RongIMLib.RongIMClient.init(appkey);
 
 		RongIMLib.RongIMClient.setConnectionStatusListener({
@@ -265,7 +268,8 @@
 		    }
 		});
 
-		var token = '183RX8CR4UcXlV3cANZXnbrkPG6U/xPk3zvPIWf9le0qIwLgOI54+IqjxPVY5a9jZgJ+5WjBf5egVjidhq2Rfg==';
+		var token = 'juHOg+JPWknbuQvtKKnBu0j3haf0XMBmyfZXnooqA5nN+FSkfWInTlOFDm4uyWnv@mwga.dy01-navqa.cn.ronghub.com;mwga.dy02-navqa.cn.ronghub.com';
+		token="kXCnu24uOm5X0VbgjctJE5uCIDbAi5DmQZdNJ4BpzW4+m5/uA77eLbEpC/rQg5DB@mwga.dy01-navqa.cn.ronghub.com;mwga.dy02-navqa.cn.ronghub.com";
 		showResult('connecting');
 		RongIMLib.RongIMClient.connect(token, {
 	        onSuccess: function(userId) {

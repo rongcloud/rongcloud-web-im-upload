@@ -3,7 +3,8 @@
 	var uploadOrderObject = {
 		'qiniu': uploadQiniu,
 		'baidu': uploadBos,
-		'aliyun': uploadAliyun
+		'aliyun': uploadAliyun,
+		's3': uploadS3
 	};
 	var uploadOrderList = [];
 	var Conf = {
@@ -386,11 +387,56 @@
 		xhr.send(data);
 	}
 
+
+	
+   //awss上传方法
+	function uploadS3(data, options, callback, file) {
+		var xhr = new XMLHttpRequest();
+		var protocol = getProtocol();
+		//获取上传地址
+	    var ossConfig=options.ossConfig?JSON.parse(options.ossConfig):[];
+		//获取aws3上传地址对象
+		var s3Config=ossConfig.find((item)=>Reflect.keys(item).includes("s3"));
+		console.log("uploadS3",s3Config);
+		var url = protocol + options.s3BucketName + '.' +s3Config?s3Config.s3:"";
+		//uploadOrderList.shift();
+		//声明进度回调
+		if (xhr.upload && options.support_options) {
+			xhr.upload.onprogress = function(event) {
+				callback.onProgress(event.loaded, event.total);
+			};
+		}
+
+		xhr.onreadystatechange = function() {
+			if (xhr.readyState == 4) {
+				var result = xhr.responseText || "{}";
+				result = JSON.parse(result);
+				result.name = options.unique_value;
+				result.filename = options.uploadFileName; // 上传文件名
+				result.uploadMethod = RongIMLib.UploadMethod ? RongIMLib.UploadMethod : '';
+				if(xhr.status === 200){
+					callback.onCompleted(result);
+				} else if (uploadOrderList.length) {
+					uploadOrderObject[uploadOrderList[0][0]](cloneData,  options, callback, file)
+				} else {
+					callback.onError('upload fail')
+				}
+			}
+		};
+		//初始化异步请求
+		xhr.open(options.method, url, true);
+		xhr.send(data);
+	}
+
+
+	
+	  
 	function uploadData(file, opts, callback) {
 		uploadFile = file, uploadOptions = opts;
 		if (opts.ossConfig) { // 配置 oss，需按权重降级上传
 			const ossConfig = JSON.parse(opts.ossConfig);
 			let aliyunUrl = '';
+			let s3Url;
 			let tempArr = [];
 			ossConfig.forEach((item) => {
 				const index = Number(item.p) - 1;
@@ -398,6 +444,7 @@
 					if (key === 'aliyun') {
 						aliyunUrl = item[key];
 					}
+					if(key==='s3') s3Url=item[key];
 					if (key != 'p') {
 						tempArr[index] = [key, item[key]]
 					}
@@ -406,15 +453,17 @@
 			tempArr.forEach(function(item) { // 过滤权重值不从 1 开始的情况
 				item ? uploadOrderList.push(item) : '';
 			})
-			
+			console.log("uploadData",opts);
 			if (ossConfig.length != uploadOrderList.length) { // 权重无值或相同，无法比较的情况
-				uploadOrderList = [['qiniu', opts.domain], ['baidu', opts.uploadHost.bos], ['aliyun', aliyunUrl]];
+				
+				uploadOrderList = [['qiniu', opts.domain], ['baidu', opts.uploadHost.bos], ['aliyun', aliyunUrl],['s3',s3Url]];
 			}
 		} else { // 走之前的逻辑，先七牛后百度
 			uploadOrderList = [['qiniu', opts.domain], ['baidu', opts.uploadHost.bos]];
 		}
 
-		if (file.size && opts.chunk_size < file.size) {
+		// if (file.size && opts.chunk_size < file.size) {
+		if(file.size){
 			isStreamUpload = true;
 			var uniqueName = opts['genUId'](file);
 			var suffix = file.name.substr(file.name.lastIndexOf('.'));
