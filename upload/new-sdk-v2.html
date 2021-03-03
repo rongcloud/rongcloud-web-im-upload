@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+	<meta http-equiv="Access-Control-Allow-Origin" content="*" />
+
     <title> Qiniu - Upload </title>
     <script src = "./send-data.js"></script>
     <script src = "../upload.js"></script>
@@ -205,6 +207,7 @@
 
 		// 上传文件
 		var file = document.getElementById("file-Id");
+		
 
 		var config = { 
 			domain: 'upload.qiniup.com',
@@ -244,6 +247,7 @@
 
 		file.onchange = function(){
 			var _file = this.files[0];
+			console.log("file",file);
 			initType[getFileType(_file.name)](_file);
 		};
 	};	

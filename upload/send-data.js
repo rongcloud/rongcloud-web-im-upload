@@ -375,6 +375,7 @@
 			}
 		};
 		xhr.open(options.method, url, true);
+		console.log("ali:url",url)
 		var aliHeader = options.aliHeader || {};
 		data.set('OSSAccessKeyId', aliHeader.osskeyId)
 		data.set('policy', aliHeader.ossPolicy)
@@ -389,17 +390,18 @@
 
 
 	
-   //awss上传方法
+   //aws3上传方法
 	function uploadS3(data, options, callback, file) {
+		var fromData=new FormData();
 		var xhr = new XMLHttpRequest();
 		var protocol = getProtocol();
-		//获取上传地址
-	    var ossConfig=options.ossConfig?JSON.parse(options.ossConfig):[];
+
 		//获取aws3上传地址对象
-		var s3Config=ossConfig.find((item)=>Reflect.keys(item).includes("s3"));
-		console.log("uploadS3",s3Config);
-		var url = protocol + options.s3BucketName + '.' +s3Config?s3Config.s3:"";
-		//uploadOrderList.shift();
+	    const awsHost = uploadOrderList[0][1]
+		//获取上传地址
+		var url = protocol + options.s3BucketName + '.' +awsHost;
+		console.log("uploadS3:url",url);
+		uploadOrderList.shift();
 		//声明进度回调
 		if (xhr.upload && options.support_options) {
 			xhr.upload.onprogress = function(event) {
@@ -413,10 +415,15 @@
 				result = JSON.parse(result);
 				result.name = options.unique_value;
 				result.filename = options.uploadFileName; // 上传文件名
-				result.uploadMethod = RongIMLib.UploadMethod ? RongIMLib.UploadMethod : '';
-				if(xhr.status === 200){
+				result.uploadMethod = RongIMLib.UploadMethod ? RongIMLib.UploadMethod.AWS : '';
+				//204 成功但是没有返回数据
+				if(xhr.status === 200||xhr.status === 204){
 					callback.onCompleted(result);
 				} else if (uploadOrderList.length) {
+					const cloneData = new FormData();
+					cloneData.set('file', data.get('file'));
+					cloneData.set('key', data.get('key'));
+					cloneData.set('token', data.get('token'));
 					uploadOrderObject[uploadOrderList[0][0]](cloneData,  options, callback, file)
 				} else {
 					callback.onError('upload fail')
@@ -425,7 +432,17 @@
 		};
 		//初始化异步请求
 		xhr.open(options.method, url, true);
-		xhr.send(data);
+		var s3Header=options?.s3Header;
+		//没有必要设置头，会自动生成，设置会报400
+		//xhr.setRequestHeader("Content-Type","multipart/form-data;boundary=9431149156168ß")
+		fromData.set("x-amz-credential",s3Header?.s3Credential);
+		fromData.set("x-amz-algorithm",s3Header?.s3Algorithm);
+		fromData.set("x-amz-date",s3Header?.s3Date);
+		fromData.set("policy",s3Header?.s3Policy);
+		fromData.set("x-amz-signature",s3Header?.s3Signature);
+		fromData.set('key', options.uploadFileName);
+		fromData.set('file', file);
+		xhr.send(fromData);
 	}
 
 
@@ -463,7 +480,7 @@
 		}
 
 		// if (file.size && opts.chunk_size < file.size) {
-		if(file.size){
+		if(file.size && opts.chunk_size < file.size){
 			isStreamUpload = true;
 			var uniqueName = opts['genUId'](file);
 			var suffix = file.name.substr(file.name.lastIndexOf('.'));
