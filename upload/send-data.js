@@ -451,6 +451,7 @@
 	function uploadData(file, opts, callback) {
 		uploadFile = file, uploadOptions = opts;
 		if (opts.ossConfig) { // 配置 oss，需按权重降级上传
+			console.log("uploadData:opts.ossConfig",opts.ossConfig);
 			const ossConfig = JSON.parse(opts.ossConfig);
 			let aliyunUrl = '';
 			let s3Url;

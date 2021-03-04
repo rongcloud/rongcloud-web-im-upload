@@ -85,12 +85,11 @@
 
 	function Upload(options) {
 		this.options = mergeOption(options);
-
 		this.setOptions = function(opts) {
 			var me = this;
 			mEach(opts, function(key, value) {
 				me.options[key] = value;
-			});
+			})
 		};
 
 		this.upload = function(file, callback) {

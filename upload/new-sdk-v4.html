@@ -9,7 +9,7 @@
     <div id="innerText"></div>
     <input id="uploadEl" type="file" />
     <div id="downloadUrlEl"></div>
-    <script src="./RongIMLib-4.1.0.js"></script>
+    <script src="./RongIMLib4.js"></script>
     <script src = "./send-data.js"></script>
     <script src = "../upload.js"></script>
     <script src="./init.js"></script>
@@ -19,9 +19,10 @@
       }
     </style>
     <script>
-      const appkey = '8luwapkvucoil';
-      const token = '183RX8CR4UcXlV3cANZXnbrkPG6U/xPk3zvPIWf9le0qIwLgOI54+IqjxPVY5a9jZgJ+5WjBf5egVjidhq2Rfg==';
-
+      //const appkey = '8luwapkvucoil';
+      const appkey='c9kqb3rdkbb8j';//测试环境
+      //const token = '183RX8CR4UcXlV3cANZXnbrkPG6U/xPk3zvPIWf9le0qIwLgOI54+IqjxPVY5a9jZgJ+5WjBf5egVjidhq2Rfg==';
+      const token="kXCnu24uOm5X0VbgjctJE5uCIDbAi5DmQZdNJ4BpzW4+m5/uA77eLbEpC/rQg5DB@mwga.dy01-navqa.cn.ronghub.com;mwga.dy02-navqa.cn.ronghub.com";
       const html = `
         <p>appkey: ${appkey}</p>
         <p>token: ${token}</p>
@@ -52,6 +53,7 @@
           fileType: fileType,
           getToken: function(callback) {
             im.getFileToken(fileType).then(function(data) {
+              console.log("getFileToken",data);
               callback(data.token, data);
             }).catch(function(error) {
               console.log('获取上传 token 失败', error);
@@ -107,6 +109,7 @@
           console.log(e.target.files[0]);
           const fileType = getFileType(e.target.files[0].name);
           let {config, uploadCallbacks} = genUploadConfig(fileType);
+          console.log("config",config)
           var _file = event.target.files[0]; // 上传的 file 对象
           UploadClient.initFile(config, function(uploadFile) { 
             uploadFile.upload(_file, uploadCallbacks);
