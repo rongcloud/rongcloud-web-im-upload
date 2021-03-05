@@ -114,6 +114,13 @@
               config.s3Header['s3Signature'] = data.s3Signature;
               config['s3BucketName'] = data.s3BucketName;
 
+              console.log("init:",config);
+              config.stcHeader = {}
+              config.stcHeader['stcAuthorization'] = data.stcAuthorization;
+              config.stcHeader['stcContentSha256'] = data.stcContentSha256;
+              config.stcHeader['stcDate'] = data.stcDate;
+              config['stcBucketName'] = data.stcBucketName;
+
               config.headers || (config.headers = {});
               if (config.base64) {
                   config.headers['Content-type'] = 'application/octet-stream';

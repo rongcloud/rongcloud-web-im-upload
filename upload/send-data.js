@@ -4,7 +4,8 @@
 		'qiniu': uploadQiniu,
 		'baidu': uploadBos,
 		'aliyun': uploadAliyun,
-		's3': uploadS3
+		's3': uploadS3,
+		'stc': uploadStc
 	};
 	var uploadOrderList = [];
 	var Conf = {
@@ -390,7 +391,7 @@
 
 
 	
-   //aws3上传方法
+    //aws3上传方法
 	function uploadS3(data, options, callback, file) {
 		var fromData=new FormData();
 		var xhr = new XMLHttpRequest();
@@ -432,16 +433,71 @@
 		};
 		//初始化异步请求
 		xhr.open(options.method, url, true);
-		var s3Header=options?.s3Header;
+		var s3Header=options?options.s3Header:{};
 		//没有必要设置头，会自动生成，设置会报400
-		//xhr.setRequestHeader("Content-Type","multipart/form-data;boundary=9431149156168ß")
-		fromData.set("x-amz-credential",s3Header?.s3Credential);
-		fromData.set("x-amz-algorithm",s3Header?.s3Algorithm);
-		fromData.set("x-amz-date",s3Header?.s3Date);
-		fromData.set("policy",s3Header?.s3Policy);
-		fromData.set("x-amz-signature",s3Header?.s3Signature);
+		xhr.setRequestHeader("Content-Type","image/jpeg")
+		//Content-Disposition: inline; filename="fname.ext"
+		//xhr.setRequestHeader("Content-Disposition","inline;filename="+options.uploadFileName);
+		fromData.set("Content-Disposition","inline;filename="+options.uploadFileName);
+		//fromData.set("Content-Type","image/jpeg");
+		fromData.set("x-amz-credential",s3Header.s3Credential);
+		fromData.set("x-amz-algorithm",s3Header.s3Algorithm);
+		fromData.set("x-amz-date",s3Header.s3Date);
+		fromData.set("policy",s3Header.s3Policy);
+		fromData.set("x-amz-signature",s3Header.s3Signature);
 		fromData.set('key', options.uploadFileName);
 		fromData.set('file', file);
+		xhr.send(fromData);
+	}
+
+	//stc上传方法
+	function uploadStc(data, options, callback, file) {
+		var fromData=new FormData();
+		var xhr = new XMLHttpRequest();
+		var protocol = getProtocol();
+
+		//获取aws3上传地址对象
+	    const host = uploadOrderList[0][1]
+		//获取上传地址
+		var url = protocol + options.stcBucketName + '.' +host;
+		console.log("uploadStc:url",url);
+		uploadOrderList.shift();
+		//声明进度回调
+		if (xhr.upload && options.support_options) {
+			xhr.upload.onprogress = function(event) {
+				callback.onProgress(event.loaded, event.total);
+			};
+		}
+
+		xhr.onreadystatechange = function() {
+			if (xhr.readyState == 4) {
+				var result = xhr.responseText || "{}";
+				result = JSON.parse(result);
+				result.name = options.unique_value;
+				result.filename = options.uploadFileName; // 上传文件名
+				result.uploadMethod = RongIMLib.UploadMethod ? RongIMLib.UploadMethod.STC : '';
+				//204 成功但是没有返回数据
+				if(xhr.status === 200||xhr.status === 204){
+					callback.onCompleted(result);
+				} else if (uploadOrderList.length) {
+					const cloneData = new FormData();
+					cloneData.set('file', data.get('file'));
+					cloneData.set('key', data.get('key'));
+					cloneData.set('token', data.get('token'));
+					uploadOrderObject[uploadOrderList[0][0]](cloneData,  options, callback, file)
+				} else {
+					callback.onError('upload fail')
+				}
+			}
+		};
+		//初始化异步请求
+		xhr.open("PUT", url, true);
+		var stcHeader=options?options.stcHeader:{};
+		xhr.setRequestHeader("Authorization",stcHeader.stcAuthorization);
+		xhr.setRequestHeader("x-amz-content-sha256",stcHeader.stcContentSha256)
+		xhr.setRequestHeader("x-amz-date",stcHeader.stcDate)
+		xhr.setRequestHeader("Content-Type","text/plain")
+		fromData.set('data-binary', file);
 		xhr.send(fromData);
 	}
 
