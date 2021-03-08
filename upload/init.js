@@ -114,7 +114,7 @@
               config.s3Header['s3Signature'] = data.s3Signature;
               config['s3BucketName'] = data.s3BucketName;
 
-              console.log("init:",config);
+              //console.log("init:",data);
               config.stcHeader = {}
               config.stcHeader['stcAuthorization'] = data.stcAuthorization;
               config.stcHeader['stcContentSha256'] = data.stcContentSha256;

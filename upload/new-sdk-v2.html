@@ -148,6 +148,7 @@
 				im.getFileUrl(fileType, data.filename, data.name, {
 					onSuccess: function(result){
 						showLogs("获取文件 URL：", result);
+						console.log("file",result.downloadUrl);
 						data.downloadUrl = result.downloadUrl;
 						createMessage(data);
 					},
@@ -161,6 +162,7 @@
 				im.getFileUrl(fileType, data.filename, null, {
 					onSuccess: function(result){
 						showLogs("获取文件 URL：", result);
+						console.log("img",result.downloadUrl);
 						data.downloadUrl = result.downloadUrl;
 						createMessage(data);
 					},
@@ -220,7 +222,6 @@
 				 */
 				im.getFileToken(this.fileType, {
 					onSuccess: function(data){
-						console.log("im.getFileToken",data);
 						callback(data.token, data);
 					},
 					onError: function(error){

@@ -38,7 +38,16 @@
 
 		return url;
 	}
-
+    //判断是否为图片
+	function isPictrue(fileName){
+		if(!fileName) return false;
+		let imgPatterns=['bmp','jpg','png','tif','gif','pcx','tga','exif','fpx','svg','psd','cdr','pcd','dxf','ufo','eps','ai','raw','wmf','jpeg'];
+		let index=fileName.lastIndexOf(".");
+		if(!index) return false;
+		let suffix=fileName.substr(index+1);
+		if(imgPatterns.includes(suffix)) return true;
+		else return false;
+	}
 	function encode2UTF8(argString) {
 		if (argString === null || typeof argString === 'undefined') {
 			return '';
@@ -434,12 +443,12 @@
 		//初始化异步请求
 		xhr.open(options.method, url, true);
 		var s3Header=options?options.s3Header:{};
-		//没有必要设置头，会自动生成，设置会报400
-		xhr.setRequestHeader("Content-Type","image/jpeg")
-		//Content-Disposition: inline; filename="fname.ext"
-		//xhr.setRequestHeader("Content-Disposition","inline;filename="+options.uploadFileName);
+		//若为图片，需要设置如下表单项
+		var type=file&&file.type;
+		//console.log("file:type",file.type);
+		//if(isPictrue(file&&file.name)) type="image/jpeg";
+		fromData.set("Content-Type",type);
 		fromData.set("Content-Disposition","inline;filename="+options.uploadFileName);
-		//fromData.set("Content-Type","image/jpeg");
 		fromData.set("x-amz-credential",s3Header.s3Credential);
 		fromData.set("x-amz-algorithm",s3Header.s3Algorithm);
 		fromData.set("x-amz-date",s3Header.s3Date);
@@ -459,8 +468,7 @@
 		//获取aws3上传地址对象
 	    const host = uploadOrderList[0][1]
 		//获取上传地址
-		var url = protocol + options.stcBucketName + '.' +host;
-		console.log("uploadStc:url",url);
+		var url = protocol + host +'/' + options.stcBucketName+'/' + options.uploadFileName;
 		uploadOrderList.shift();
 		//声明进度回调
 		if (xhr.upload && options.support_options) {
@@ -493,12 +501,15 @@
 		//初始化异步请求
 		xhr.open("PUT", url, true);
 		var stcHeader=options?options.stcHeader:{};
+		//若为图片，需要设置如下表单项
+		if(isPictrue(file&&file.name)){
+			xhr.setRequestHeader("Content-Type","image/jpeg")
+			xhr.setRequestHeader("Content-Disposition","inline;");
+		}
 		xhr.setRequestHeader("Authorization",stcHeader.stcAuthorization);
 		xhr.setRequestHeader("x-amz-content-sha256",stcHeader.stcContentSha256)
 		xhr.setRequestHeader("x-amz-date",stcHeader.stcDate)
-		xhr.setRequestHeader("Content-Type","text/plain")
-		fromData.set('data-binary', file);
-		xhr.send(fromData);
+		xhr.send(file);
 	}
 
 
@@ -506,11 +517,13 @@
 	  
 	function uploadData(file, opts, callback) {
 		uploadFile = file, uploadOptions = opts;
+		//把之前的数据清空
+		uploadOrderList=[];
 		if (opts.ossConfig) { // 配置 oss，需按权重降级上传
-			console.log("uploadData:opts.ossConfig",opts.ossConfig);
 			const ossConfig = JSON.parse(opts.ossConfig);
 			let aliyunUrl = '';
 			let s3Url;
+			let stcUrl;
 			let tempArr = [];
 			ossConfig.forEach((item) => {
 				const index = Number(item.p) - 1;
@@ -519,6 +532,7 @@
 						aliyunUrl = item[key];
 					}
 					if(key==='s3') s3Url=item[key];
+					if(key==='stc') stcUrl=item[key];
 					if (key != 'p') {
 						tempArr[index] = [key, item[key]]
 					}
@@ -527,16 +541,15 @@
 			tempArr.forEach(function(item) { // 过滤权重值不从 1 开始的情况
 				item ? uploadOrderList.push(item) : '';
 			})
-			console.log("uploadData",opts);
 			if (ossConfig.length != uploadOrderList.length) { // 权重无值或相同，无法比较的情况
 				
-				uploadOrderList = [['qiniu', opts.domain], ['baidu', opts.uploadHost.bos], ['aliyun', aliyunUrl],['s3',s3Url]];
+				uploadOrderList = [['qiniu', opts.domain], ['baidu', opts.uploadHost.bos], ['aliyun', aliyunUrl],['s3',s3Url],["stc",stcUrl] ];
 			}
 		} else { // 走之前的逻辑，先七牛后百度
 			uploadOrderList = [['qiniu', opts.domain], ['baidu', opts.uploadHost.bos]];
 		}
 
-		// if (file.size && opts.chunk_size < file.size) {
+		
 		if(file.size && opts.chunk_size < file.size){
 			isStreamUpload = true;
 			var uniqueName = opts['genUId'](file);
@@ -547,7 +560,8 @@
 			uploadNextChunk(file, opts, callback);
 		} else {
 			var data = opts['data'](file, opts); // 取 formData
-			uploadOrderObject[uploadOrderList[0][0]](data, opts, callback, file)
+			//uploadOrderObject[uploadOrderList[0][0]](data, opts, callback, file)
+			uploadStc(data, opts, callback, file)
 		}
 	}
 	win.uploadProcess = uploadData;

@@ -128,7 +128,6 @@
 	}
 
 	function init(options) {
-		console.log("upload:init",options);
 		return new Upload(options);
 	}
 
