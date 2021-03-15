@@ -24,7 +24,8 @@
 			unique_key: 'key',
 			base64_size: 4 * 1024 * 1024,
 			chunk_size: 4 * 1024 * 1024,
-			bos_chunk_size: 4 * 1024 * 1024 * 1024, // 上传超过5GB大小的文件
+			bos_chunk_size: 4 * 1024 * 1024 * 1024, // 上传超过5GB大小的文件,
+			stc_chunk_size: 10 * 1024 * 1024,//stc分片上传，文件块100M
 			headers: {},
 			multi_parmas: {},
 			query: {},
@@ -91,7 +92,7 @@
 				me.options[key] = value;
 			})
 		};
-
+        console.log("options",options)
 		this.upload = function(file, callback) {
 			if (!file) {
 				callback.onError('upload file is null.');

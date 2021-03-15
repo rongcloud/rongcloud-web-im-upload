@@ -126,6 +126,7 @@
                   config.headers['Content-type'] = 'application/octet-stream';
                   config.headers['Authorization'] = 'UpToken ' + token;
               }
+              console.log("data",data);
               var instance = UploadFile.init(config);
               callback(instance);
           });

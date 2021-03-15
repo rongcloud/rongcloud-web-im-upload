@@ -8,7 +8,7 @@
     <script src = "./send-data.js"></script>
     <script src = "../upload.js"></script>
     <script src="./init.js"></script>
-	<script src="./RongIMLib-2.8.0-alpha.9.dev.js"></script>
+	<script src="./RongIMLib-2.8.0-alpha.10.dev.js"></script>
 	<!-- <script src='//cdn.ronghub.com/RongIMLib-2.5.8.js'></script> -->
    <style type = "text/css">
 	.container{
@@ -76,6 +76,8 @@
 </body>
 <script>
 
+
+   
 	var getDom = function(id){
 		return document.getElementById(id);
 	};
@@ -153,7 +155,7 @@
 						createMessage(data);
 					},
 					onError: function(error){
-						showResult('getFileToken error:' + error);
+						showResult('getFileUrlerror:' + error);
 					}
 				}, data, data.uploadMethod);
 			},
@@ -222,12 +224,13 @@
 				 */
 				im.getFileToken(this.fileType, {
 					onSuccess: function(data){
+						console.log("getFileToken:callback",data);
 						callback(data.token, data);
 					},
 					onError: function(error){
 						showResult('getFileToken error:' + error);
 					}
-				});
+				},undefined);
 			}
 		};
 
@@ -247,7 +250,6 @@
 
 		file.onchange = function(){
 			var _file = this.files[0];
-			console.log("file",file);
 			initType[getFileType(_file.name)](_file);
 		};
 	};	
@@ -255,10 +257,11 @@
 	var connect = function(){
 		var appkey = '8luwapkvucoil';
 		appkey='c9kqb3rdkbb8j';//测试环境
-		RongIMLib.RongIMClient.init(appkey);
+		RongIMLib.RongIMClient.init(appkey, null, { navi: 'http://navqa.cn.ronghub.com' });
 
 		RongIMLib.RongIMClient.setConnectionStatusListener({
 		    onChanged: function (status) {
+				console.log('connection status change ->', status)
 		        switch (status) {
 		            case RongIMLib.ConnectionStatus.CONNECTED:
 		                getDom('upload').style.display = 'block';

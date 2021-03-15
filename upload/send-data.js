@@ -1,4 +1,7 @@
+
+
 (function(win) {
+	
 	var uploadFile, uploadOptions, isStreamUpload;
 	var uploadOrderObject = {
 		'qiniu': uploadQiniu,
@@ -38,16 +41,7 @@
 
 		return url;
 	}
-    //判断是否为图片
-	function isPictrue(fileName){
-		if(!fileName) return false;
-		let imgPatterns=['bmp','jpg','png','tif','gif','pcx','tga','exif','fpx','svg','psd','cdr','pcd','dxf','ufo','eps','ai','raw','wmf','jpeg'];
-		let index=fileName.lastIndexOf(".");
-		if(!index) return false;
-		let suffix=fileName.substr(index+1);
-		if(imgPatterns.includes(suffix)) return true;
-		else return false;
-	}
+    
 	function encode2UTF8(argString) {
 		if (argString === null || typeof argString === 'undefined') {
 			return '';
@@ -401,6 +395,7 @@
 
 	
     //aws3上传方法
+	//详情参考文档https://gitbook.rongcloud.net/server/docs/dashboard/discuss/aws-s3.html
 	function uploadS3(data, options, callback, file) {
 		var fromData=new FormData();
 		var xhr = new XMLHttpRequest();
@@ -425,7 +420,8 @@
 				result = JSON.parse(result);
 				result.name = options.unique_value;
 				result.filename = options.uploadFileName; // 上传文件名
-				result.uploadMethod = RongIMLib.UploadMethod ? RongIMLib.UploadMethod.AWS : '';
+				result.uploadMethod = RongIMLib.UploadMethod.AWS//RongIMLib.UploadMethod.AWS;
+				console.log("RongIMLib.UploadMethod:",RongIMLib.UploadMethod);
 				//204 成功但是没有返回数据
 				if(xhr.status === 200||xhr.status === 204){
 					callback.onCompleted(result);
@@ -445,10 +441,14 @@
 		var s3Header=options?options.s3Header:{};
 		//若为图片，需要设置如下表单项
 		var type=file&&file.type;
-		//console.log("file:type",file.type);
-		//if(isPictrue(file&&file.name)) type="image/jpeg";
+		
+		//html为预览，其他是下载
+		if(type==="text/html"){
+			fromData.set("Content-Disposition","inline;");
+		}else{
+			fromData.set("Content-Disposition","attachment;");
+		}
 		fromData.set("Content-Type",type);
-		fromData.set("Content-Disposition","inline;filename="+options.uploadFileName);
 		fromData.set("x-amz-credential",s3Header.s3Credential);
 		fromData.set("x-amz-algorithm",s3Header.s3Algorithm);
 		fromData.set("x-amz-date",s3Header.s3Date);
@@ -501,20 +501,194 @@
 		//初始化异步请求
 		xhr.open("PUT", url, true);
 		var stcHeader=options?options.stcHeader:{};
-		//若为图片，需要设置如下表单项
-		if(isPictrue(file&&file.name)){
-			xhr.setRequestHeader("Content-Type","image/jpeg")
-			xhr.setRequestHeader("Content-Disposition","inline;");
+		//html为预览，其他是下载
+		xhr.setRequestHeader("Content-Type",file.type)
+		if(file.type==="text/html"){
+			xhr.setRequestHeader("Content-Disposition","inline;"); 
+		}else{
+			xhr.setRequestHeader("Content-Disposition","attachment;");
 		}
+		
 		xhr.setRequestHeader("Authorization",stcHeader.stcAuthorization);
 		xhr.setRequestHeader("x-amz-content-sha256",stcHeader.stcContentSha256)
 		xhr.setRequestHeader("x-amz-date",stcHeader.stcDate)
 		xhr.send(file);
 	}
 
+	//stc分段上传，有三个过程
+	//1.发送开始上传请求，返回uploadid
+	//2.分段上传请求，大小范围为5M-5G，返回Etag等信息
+	//3.结束上传请求，
+	//详情参考文档，https://gitbook.rongcloud.net/server/docs/dashboard/discuss/stc-s3.html
+    function uploadStcMultipart(file,options,callback){
+		var stcHeader=options?options.stcHeader:{};
+		var type=file&&file.type;
+		var fileName=options.uploadFileName;
+		var fileType=type.indexOf("image")>-1?RongIMLib.FileType.IMAGE:RongIMLib.FileType.FILE;
+		//获取文件块数
+		var chunks=Math.ceil(file.size/options.stc_chunk_size);
+		var osssConfig=options&&JSON.parse(options.ossConfig?options.ossConfig:"");
+		if(!Array.isArray(osssConfig)) osssConfig=[];
+		var stcConfig=osssConfig.find((item)=>Object.keys(item).includes("stc"));
+		var url = "https://" + stcConfig.stc +'/' + options.stcBucketName+'/' + fileName;
+		console.log("uploadStcMultipart:url",url);
+		var xhr=new XMLHttpRequest();
+		xhr.open("POST",url+"?uploads",true);
+		xhr.setRequestHeader("Authorization",stcHeader.stcAuthorization);
+		xhr.setRequestHeader("x-amz-content-sha256",stcHeader.stcContentSha256);
+		xhr.setRequestHeader("x-amz-date",stcHeader.stcDate);
+		xhr.setRequestHeader("Content-Type",type);
+		xhr.send();
+		
+		//console.log(RongIMLib);
+		xhr.onreadystatechange = function(event) {
+			if (xhr.readyState == 4) {
+				//返回的是一个xml格式字符串，包含uploadid
+                var text=xhr.response;
+				//获取uploadId
+				var reg=/(?<=<UploadId>)\S*(?=<\/UploadId>)/g;
+				var uploadId=text.match(reg);
+				console.log("uploadId",uploadId);
+				//204 成功但是没有返回数据
+				if(xhr.status === 200||xhr.status === 204){
+					executeResult(uploadId&&uploadId[0])
+				} else {
+					callback.onError('uploadStcMultipart：get uploadId failed')
+				}
+			}
+		};
+
+        //获取签名验证方法
+		var im=RongIMLib&&RongIMLib.RongIMClient&&RongIMLib.RongIMClient.getInstance&&RongIMLib.RongIMClient.getInstance()||{};
+		
+		//分段上传完成
+		//uploadId；分段上传第一次请求时获取的上传ID
+		function executeResult(uploadId){
+			//获取所有初始化的请求
+			var promises=execute(uploadId);
+			//所有请求成功后返回的etag会按顺序保存到result数组中
+			Promise.all(promises).then((result)=>{
+				//签名验证需要的值
+				var queryString='uploadId='+uploadId;
+				//签名验证回调对象
+				var caBack={
+					onSuccess(data){
+						console.log("onSuccess",data)
+						result=result||[];
+						var thirdXhr=new XMLHttpRequest();
+						thirdXhr.open("POST",url+'?'+queryString,true);
+						thirdXhr.setRequestHeader("Authorization",data&&data.stcAuthorization);
+						thirdXhr.setRequestHeader("x-amz-content-sha256",data&&data.stcContentSha256);
+						thirdXhr.setRequestHeader("x-amz-date",data&&data.stcDate);
+						thirdXhr.setRequestHeader("Content-Type",type);
+						//声明进度回调
+						if (thirdXhr.upload && options.support_options) {
+							thirdXhr.upload.onprogress = function(event) {
+								callback.onProgress(event.loaded, event.total);
+							};
+						}
+						//设置请求体
+						var xml="<CompleteMultipartUpload xmlns='http://s3.amazonaws.com/doc/2006-03-01/'>";
+						result.map((item,index)=>xml+=`<Part><ETag>${item}</ETag><PartNumber>${index+1}</PartNumber></Part>`);
+						xml+="</CompleteMultipartUpload>";
+						thirdXhr.send(xml);
+						console.log("xml",xml);
+						thirdXhr.onreadystatechange = function() {
+							if (thirdXhr.readyState == 4) {
+								//204 成功但是没有返回数据
+								if(thirdXhr.status === 200||thirdXhr.status === 204){
+									var result = {};
+									result.name = file.name;
+									result.filename = options.uploadFileName; // 上传文件名
+									result.uploadMethod = RongIMLib.UploadMethod.STC;
+									callback.onCompleted(result);
+								} else {
+									callback.onError("uploadStcMultipart:upload doesn't end");
+								}
+							}
+						};
+					},
+					//签名验证失败回调
+					onError(error){
+						callback.onError("uploadStcMultipart:",error);
+					}
+				}
+				//签名验证
+				im.getFileToken(fileType, caBack, fileName, "POST", queryString,true);
+			},(error)=>{
+				//上传失败，打印错误
+				callback.onError("uploadStcMultipart:",error);
+				//上传失败，执行删除操作
+				// var endXhr=new XMLHttpRequest();
+				// endXhr.open("DELETE",url+'?uploadId='+uploadId,true);
+				// endXhr.send();
+				// endXhr.onreadystatechange=function(){
+				// 	if (endXhr.readyState == 4) {
+				// 		if(endXhr.status === 200||endXhr.status === 204){
+				// 			console.log("uploadStcMultipart: abort upload");
+				// 		}
+				// 	}
+				// }
+				
+			})
+		}
+
+		//获取promise请求数组
+		function execute(uploadId){
+			var promises=[];
+			//阻止var变量提升
+			function temp(i){
+				return new Promise((resolve,reject)=>{
+					var queryString='partNumber='+i+'&uploadId='+uploadId;
+					//签名验证回调对象
+					var caBack={
+						onSuccess(data){
+							console.log("signature "+i+" onSuccess",data);
+							//上传的部分文件，slice以B为单位,待定，问下移动端
+							var fileChunk=file&&file.slice((i-1)*options.stc_chunk_size,i*options.stc_chunk_size);
+							console.log("fileChunk:size",fileChunk.size);
+							var secondXhr=new XMLHttpRequest();
+							secondXhr.open("PUT",url+'?'+queryString,true);
+							secondXhr.setRequestHeader("Authorization",data&&data.stcAuthorization);
+							secondXhr.setRequestHeader("x-amz-content-sha256",data&&data.stcContentSha256);
+							secondXhr.setRequestHeader("x-amz-date",data&&data.stcDate);
+							secondXhr.setRequestHeader("Content-Type",type);
+							
+							secondXhr.send(fileChunk);
+							secondXhr.onreadystatechange = function() {
+								if (secondXhr.readyState == 4) {
+									if(secondXhr.status === 200||secondXhr.status === 204){
+										//获取返回头的etag
+										var eTag=secondXhr.getResponseHeader("etag");
+										console.log("etag",eTag);
+										resolve(eTag)
+									} else {
+										//上传失败，返回请求对象
+										reject(secondXhr);
+									}
+								}
+							};
+		
+						},
+						//签名验证失败回调
+						onError(e){
+							reject(e)
+						}
+					}
+					//签名验证
+					im.getFileToken(fileType, caBack, fileName, "PUT", queryString,true);
+				})
+			}
+			//初始化上传文件请求，即顺序发送请求，获取promises数组
+			for(var i=1;i<=chunks;i++){
+				promises.push(temp(i));
+			}
+			return promises;
+		}
+	}
+	
 
 	
-	  
 	function uploadData(file, opts, callback) {
 		uploadFile = file, uploadOptions = opts;
 		//把之前的数据清空
@@ -549,20 +723,31 @@
 			uploadOrderList = [['qiniu', opts.domain], ['baidu', opts.uploadHost.bos]];
 		}
 
-		
+		//uploadStcMultipart(file,opts,callback);
 		if(file.size && opts.chunk_size < file.size){
-			isStreamUpload = true;
-			var uniqueName = opts['genUId'](file);
-			var suffix = file.name.substr(file.name.lastIndexOf('.'));
-			uniqueName = uniqueName + suffix;
-			file.uniqueName = uniqueName;
-			opts.stream = true;
-			uploadNextChunk(file, opts, callback);
+			for(var j=0;j<uploadOrderList.size;j++){
+				var urlItem=uploadOrderList[j];
+				if(urlItem[0]==="stc"){
+					uploadStcMultipart(file,opts,callback);
+					break;
+				}else if(urlItem[0]==="qiniu"){
+					isStreamUpload = true;
+					var uniqueName = opts['genUId'](file);
+					var suffix = file.name.substr(file.name.lastIndexOf('.'));
+					uniqueName = uniqueName + suffix;
+					file.uniqueName = uniqueName;
+					opts.stream = true;
+					uploadNextChunk(file, opts, callback);
+					break;
+				}
+			}
+			
 		} else {
 			var data = opts['data'](file, opts); // 取 formData
-			//uploadOrderObject[uploadOrderList[0][0]](data, opts, callback, file)
-			uploadStc(data, opts, callback, file)
+			uploadOrderObject[uploadOrderList[0][0]](data, opts, callback, file)
+			//uploadS3(data, opts, callback, file);
 		}
+		
 	}
 	win.uploadProcess = uploadData;
 })(window);
