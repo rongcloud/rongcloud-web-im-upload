@@ -560,7 +560,7 @@
 				if(xhr.status === 200||xhr.status === 204){
 					executeResult(uploadId&&uploadId[0])
 				} else {
-					callback.onError('uploadStcMultipart：get uploadId failed')
+					callback.onError('uploadStcMultipart:did not get uploadId')
 				}
 			}
 		};
@@ -610,33 +610,47 @@
 									result.uploadMethod = RongIMLib.UploadMethod.STC;
 									callback.onCompleted(result);
 								} else {
-									callback.onError("uploadStcMultipart:upload doesn't end");
+									callback.onError("uploadStcMultipart:upload does not end");
 								}
 							}
 						};
 					},
 					//签名验证失败回调
 					onError(error){
-						callback.onError("uploadStcMultipart:",error);
+						callback.onError("uploadStcMultipart:"+error);
 					}
 				}
 				//签名验证
 				im.getFileToken(fileType, caBack, fileName, "POST", queryString,true);
 			},(error)=>{
 				//上传失败，打印错误
-				callback.onError("uploadStcMultipart:",error);
-				//上传失败，执行删除操作
-				// var endXhr=new XMLHttpRequest();
-				// endXhr.open("DELETE",url+'?uploadId='+uploadId,true);
-				// endXhr.send();
-				// endXhr.onreadystatechange=function(){
-				// 	if (endXhr.readyState == 4) {
-				// 		if(endXhr.status === 200||endXhr.status === 204){
-				// 			console.log("uploadStcMultipart: abort upload");
-				// 		}
-				// 	}
-				// }
-				
+				callback.onError("uploadStcMultipart:upload fail");
+				//上传失败，删除已上传的内容
+				var queryString='uploadId='+uploadId;
+				var caBack={
+					onSuccess(data){
+						var endXhr=new XMLHttpRequest();
+						endXhr.open("DELETE",url+'?uploadId='+uploadId,true);
+						endXhr.setRequestHeader("Authorization",data&&data.stcAuthorization);
+						endXhr.setRequestHeader("x-amz-content-sha256",data&&data.stcContentSha256);
+						endXhr.setRequestHeader("x-amz-date",data&&data.stcDate);
+						endXhr.setRequestHeader("Content-Type",type);
+						endXhr.send();
+						endXhr.onreadystatechange=function(){
+							if (endXhr.readyState == 4) {
+								if(endXhr.status === 200||endXhr.status === 204){
+									console.log("uploadStcMultipart: delete upload");
+								}
+							}
+						}
+
+					},
+					onError(error){
+						console.log("uploadStcMultipart:",error);
+					}
+				}
+				//签名验证
+				im.getFileToken(fileType, caBack, fileName, "DELETE", queryString,true);
 			})
 		}
 
@@ -658,7 +672,7 @@
 							secondXhr.open("PUT",url+'?'+queryString,true);
 							secondXhr.setRequestHeader("Authorization",data&&data.stcAuthorization);
 							secondXhr.setRequestHeader("x-amz-content-sha256",data&&data.stcContentSha256);
-							secondXhr.setRequestHeader("x-amz-date",data&&data.stcDate);
+							//secondXhr.setRequestHeader("x-amz-date",data&&data.stcDate);
 							secondXhr.setRequestHeader("Content-Type",type);
 							
 							secondXhr.send(fileChunk);
@@ -671,7 +685,7 @@
 										resolve(eTag)
 									} else {
 										//上传失败，返回请求对象
-										reject(secondXhr);
+										reject(secondXhr.response);
 									}
 								}
 							};
