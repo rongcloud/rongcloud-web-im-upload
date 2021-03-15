@@ -525,15 +525,22 @@
 		var type=file&&file.type;
 		var fileName=options.uploadFileName;
 		var fileType=type.indexOf("image")>-1?RongIMLib.FileType.IMAGE:RongIMLib.FileType.FILE;
+		var proto=getProtocol();
 		//获取文件块数
 		var chunks=Math.ceil(file.size/options.stc_chunk_size);
 		var osssConfig=options&&JSON.parse(options.ossConfig?options.ossConfig:"");
 		if(!Array.isArray(osssConfig)) osssConfig=[];
 		var stcConfig=osssConfig.find((item)=>Object.keys(item).includes("stc"));
-		var url = "https://" + stcConfig.stc +'/' + options.stcBucketName+'/' + fileName;
+		var url = proto + stcConfig.stc +'/' + options.stcBucketName+'/' + fileName;
 		console.log("uploadStcMultipart:url",url);
 		var xhr=new XMLHttpRequest();
 		xhr.open("POST",url+"?uploads",true);
+		//html为预览，其他是下载
+		if(file.type==="text/html"){
+			xhr.setRequestHeader("Content-Disposition","inline;"); 
+		}else{
+			xhr.setRequestHeader("Content-Disposition","attachment;");
+		}
 		xhr.setRequestHeader("Authorization",stcHeader.stcAuthorization);
 		xhr.setRequestHeader("x-amz-content-sha256",stcHeader.stcContentSha256);
 		xhr.setRequestHeader("x-amz-date",stcHeader.stcDate);
@@ -725,7 +732,7 @@
 
 		//uploadStcMultipart(file,opts,callback);
 		if(file.size && opts.chunk_size < file.size){
-			for(var j=0;j<uploadOrderList.size;j++){
+			for(var j=0;j<uploadOrderList.length;j++){
 				var urlItem=uploadOrderList[j];
 				if(urlItem[0]==="stc"){
 					uploadStcMultipart(file,opts,callback);
