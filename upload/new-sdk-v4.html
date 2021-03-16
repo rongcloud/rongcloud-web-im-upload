@@ -4,42 +4,62 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
-  </head>
-  <body>
-    <div id="innerText"></div>
-    <input id="uploadEl" type="file" />
-    <div id="downloadUrlEl"></div>
-    <script src="./RongIMLib-4.1.0.js"></script>
+    <script src="./RongIMLib-4.3.0-alpha.2.dev.js"></script>
     <script src = "./send-data.js"></script>
     <script src = "../upload.js"></script>
     <script src="./init.js"></script>
+
     <style type = "text/css">
       #downloadUrlEl {
         background-color: #c0c0c0;
       }
     </style>
+  </head>
+  <body>
+
+    appkey:<input style="display: inline-block;width: 35vw" type="text" id="appkey" value="c9kqb3rdkbb8j"/>
+		<br/>
+    </br>
+		token&nbsp;&nbsp;:<input style="display: inline-block;width: 35vw" type="text" id="token" value="zOpX3V+ouKjIBlz5cjaAVjmYg6A8Uml0w7c7g+lGxN4=@mwga.dy01-navqa.cn.ronghub.com;mwga.dy02-navqa.cn.ronghub.com"/>
+		</br>
+    </br>
+		<input type="button" value="连接" onclick="connect()">
+
+    </br>
+    </br>
+    是否为stc多段上传：
+    <input type="radio" value="false" name="stcMultipart" checked>否
+    <input type="radio" value="true" name="stcMultipart">是
+    </br>
+    </br>
+    <div id="innerText"></div>
+    <input type="button" value="清空文件" onclick="clearFile()">
+    <input id="uploadEl" type="file" />
+    <div id="downloadUrlEl"></div>
+    
+    
     <script>
-      //const appkey = '8luwapkvucoil';
-      const appkey='c9kqb3rdkbb8j';//测试环境
-      //const token = '183RX8CR4UcXlV3cANZXnbrkPG6U/xPk3zvPIWf9le0qIwLgOI54+IqjxPVY5a9jZgJ+5WjBf5egVjidhq2Rfg==';
-      const token="kXCnu24uOm5X0VbgjctJE5uCIDbAi5DmQZdNJ4BpzW4+m5/uA77eLbEpC/rQg5DB@mwga.dy01-navqa.cn.ronghub.com;mwga.dy02-navqa.cn.ronghub.com";
-      const html = `
-        <p>appkey: ${appkey}</p>
-        <p>token: ${token}</p>
-      `;
-      document.getElementById('innerText').innerHTML = html;
+      
 
       let im;
-      if (appkey && token) {
-        im = RongIMLib.init({
-          appkey
-        });
-        im.connect({token}).then((user) => {
-          console.log('链接成功, 链接用户 id 为: ', user.id);
-        }).catch(function(error) {
-          console.log('链接失败: ', error.code, error.msg);
-        });
+      function connect(){
+        var appkey = document.getElementById("appkey").value;
+        //console.log("appkey",appkey);
+        var token = document.getElementById("token").value;
+        //console.log("token",token);
+        if (appkey && token) {
+          im = RongIMLib.init({
+            appkey,
+            navigators:['http://navqa.cn.ronghub.com']
+          });
+          im.connect({token}).then((user) => {
+            console.log('链接成功, 链接用户 id 为: ', user.id);
+          }).catch(function(error) {
+            console.log('链接失败: ', error.code, error.msg);
+          });
+        }
       }
+      
       
       function genUploadConfig(type) {
         let fileType;
@@ -52,12 +72,26 @@
           domain: 'upload.qiniup.com',
           fileType: fileType,
           getToken: function(callback) {
-            im.getFileToken(fileType).then(function(data) {
-              console.log("getFileToken",data);
-              callback(data.token, data);
-            }).catch(function(error) {
-              console.log('获取上传 token 失败', error);
-            });
+            var els=document.getElementsByName("stcMultipart");
+            var el=els&&Array.from(els).find((item)=>{
+              return item.checked===true;
+            })
+            if(el.value==="false"){
+              im.getFileToken(fileType).then(function(data) {
+                console.log("getFileToken",data);
+                callback(data.token, data);
+              }).catch(function(error) {
+                console.log('获取上传 token 失败', error);
+              });
+            }else{
+              im.getFileToken(fileType,undefined,'POST','uploads').then(function(data) {
+                console.log("getFileToken",data);
+                callback(data.token, data);
+              }).catch(function(error) {
+                console.log('获取上传 token 失败', error);
+              });
+            }
+            
           }
         }
         var uploadCallbacks = {
@@ -115,6 +149,13 @@
             uploadFile.upload(_file, uploadCallbacks);
           });
         }
+      }
+      //重置文件及进度条
+      function clearFile(){
+        var file=document.getElementById('uploadEl');
+        var progressBar=document.getElementById('downloadUrlEl');
+        file.value=null; 
+        downloadUrlEl.innerHTML = "";
       }
     </script>
   </body>

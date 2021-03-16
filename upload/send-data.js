@@ -438,6 +438,7 @@
 		};
 		//初始化异步请求
 		xhr.open(options.method, url, true);
+		xhr.withCredentials=true;
 		var s3Header=options?options.s3Header:{};
 		//若为图片，需要设置如下表单项
 		var type=file&&file.type;
@@ -621,7 +622,7 @@
 					}
 				}
 				//签名验证
-				im.getFileToken(fileType, caBack, fileName, "POST", queryString,true);
+				im.getFileToken(fileType, caBack, fileName, "POST", queryString);
 			},(error)=>{
 				//上传失败，打印错误
 				callback.onError("uploadStcMultipart:upload fail");
@@ -650,7 +651,7 @@
 					}
 				}
 				//签名验证
-				im.getFileToken(fileType, caBack, fileName, "DELETE", queryString,true);
+				im.getFileToken(fileType, caBack, fileName, "DELETE", queryString);
 			})
 		}
 
@@ -697,7 +698,7 @@
 						}
 					}
 					//签名验证
-					im.getFileToken(fileType, caBack, fileName, "PUT", queryString,true);
+					im.getFileToken(fileType, caBack, fileName, "PUT", queryString);
 				})
 			}
 			//初始化上传文件请求，即顺序发送请求，获取promises数组

@@ -42,19 +42,38 @@
 		overflow: scroll;
 	}
 	#upload{
-		display: none;
 		float: left;
 	}
 	.warn{
 		color: red;
 	}
-
+	.formItemType{
+		display: inline-block;
+		width: 400px;
+		padding: 10px;
+		height: 20px;
+	}
 </style>
 </head>
 <body>
+	
 	<div id="upload">
-
-		<p><input type="file" id="file-Id" value="upload-file" /></p>
+		appkey:<input style="display: inline-block;width: 35vw" type="text" id="appkey" value="c9kqb3rdkbb8j"/>
+		<br/>
+		<br/>
+		token&nbsp;&nbsp;:<input style="display: inline-block;width: 35vw" type="text" id="token" value="zOpX3V+ouKjIBlz5cjaAVjmYg6A8Uml0w7c7g+lGxN4=@mwga.dy01-navqa.cn.ronghub.com;mwga.dy02-navqa.cn.ronghub.com"/>
+		</br>
+		</br>
+		<input type="button" value="连接" onclick="connect()">
+		</br>
+		</br>
+		是否为stc多段上传：
+		<input type="radio" value="false" name="stcMultipart" checked>否
+		<input type="radio" value="true" name="stcMultipart">是
+		<p>
+			<input type="button" value="清空文件" onclick="clearFile()">
+			<input type="file" id="file-Id" value="upload-file" />
+		</p>
 		<div class="container" id="container">
 	        <div class = "progressBar" id= "progressBar"></div>
 	        <div class = "progressContent" id = "progressContent">
@@ -76,7 +95,9 @@
 </body>
 <script>
 
+	
 
+	
    
 	var getDom = function(id){
 		return document.getElementById(id);
@@ -222,15 +243,32 @@
 				 * 2、文件不可迁移。
 				 ****************************
 				 */
-				im.getFileToken(this.fileType, {
-					onSuccess: function(data){
-						console.log("getFileToken:callback",data);
-						callback(data.token, data);
-					},
-					onError: function(error){
-						showResult('getFileToken error:' + error);
-					}
-				},undefined,"POST",'uploads');
+				var els=document.getElementsByName("stcMultipart");
+				var el=els&&Array.from(els).find((item)=>{
+					return item.checked===true;
+				})
+				if(el.value==="false"){
+					im.getFileToken(this.fileType, {
+						onSuccess: function(data){
+							console.log("getFileToken:callback",data);
+							callback(data.token, data);
+						},
+						onError: function(error){
+							showResult('getFileToken error:' + error);
+						}
+					},undefined);
+				}else{
+					im.getFileToken(this.fileType, {
+						onSuccess: function(data){
+							console.log("getFileToken:callback",data);
+							callback(data.token, data);
+						},
+						onError: function(error){
+							showResult('getFileToken error:' + error);
+						}
+					},undefined,"POST","uploads");
+				}
+				
 			}
 		};
 
@@ -255,8 +293,15 @@
 	};	
 
 	var connect = function(){
-		var appkey = '8luwapkvucoil';
-		appkey='c9kqb3rdkbb8j';//测试环境
+		var appkey = document.getElementById("appkey").value;
+		console.log("appkey",appkey);
+		var token = document.getElementById("token").value;
+		console.log("token",token);
+		//测试环境
+		//appkey='c9kqb3rdkbb8j';
+		//测试环境
+		//token="zOpX3V+ouKjIBlz5cjaAVjmYg6A8Uml0w7c7g+lGxN4=@mwga.dy01-navqa.cn.ronghub.com;mwga.dy02-navqa.cn.ronghub.com";
+		//appkey='n19jmcy59f1q9';
 		RongIMLib.RongIMClient.init(appkey, null, { navi: 'http://navqa.cn.ronghub.com' });
 
 		RongIMLib.RongIMClient.setConnectionStatusListener({
@@ -275,8 +320,9 @@
 		    }
 		});
 
-		var token = 'juHOg+JPWknbuQvtKKnBu0j3haf0XMBmyfZXnooqA5nN+FSkfWInTlOFDm4uyWnv@mwga.dy01-navqa.cn.ronghub.com;mwga.dy02-navqa.cn.ronghub.com';
-		token="kXCnu24uOm5X0VbgjctJE5uCIDbAi5DmQZdNJ4BpzW4+m5/uA77eLbEpC/rQg5DB@mwga.dy01-navqa.cn.ronghub.com;mwga.dy02-navqa.cn.ronghub.com";
+		
+		
+		
 		showResult('connecting');
 		RongIMLib.RongIMClient.connect(token, {
 	        onSuccess: function(userId) {
@@ -291,7 +337,15 @@
 	        }
 		});
 	};
-	connect();
+	//重置文件及进度条
+	function clearFile(){
+		var file=document.getElementById('file-Id');
+		var progressBar=document.getElementById('progressBar');
+		var progressContent=document.getElementById('progressContent');
+		file.value=null; 
+		progressBar.style.width = '0%';
+	    progressContent.innerHTML = "";
+	}
 </script>
 
 </html>
