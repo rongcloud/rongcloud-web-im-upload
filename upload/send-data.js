@@ -403,7 +403,7 @@
 
 		//获取aws3上传地址对象
 	    const awsHost = uploadOrderList[0][1]
-		//获取上传地址
+		//获取上传地址，
 		var url = protocol + options.s3BucketName + '.' +awsHost;
 		console.log("uploadS3:url",url);
 		uploadOrderList.shift();
@@ -469,7 +469,7 @@
 		//获取aws3上传地址对象
 	    const host = uploadOrderList[0][1]
 		//获取上传地址
-		var url = protocol + host +'/' + options.stcBucketName+'/' + options.uploadFileName;
+		var url = 'https://' + host +'/' + options.stcBucketName+'/' + options.uploadFileName;
 		uploadOrderList.shift();
 		//声明进度回调
 		if (xhr.upload && options.support_options) {
@@ -532,7 +532,8 @@
 		var osssConfig=options&&JSON.parse(options.ossConfig?options.ossConfig:"");
 		if(!Array.isArray(osssConfig)) osssConfig=[];
 		var stcConfig=osssConfig.find((item)=>Object.keys(item).includes("stc"));
-		var url = proto + stcConfig.stc +'/' + options.stcBucketName+'/' + fileName;
+		//stc不支持http
+		var url = 'https://' + stcConfig.stc +'/' + options.stcBucketName+'/' + fileName;
 		console.log("uploadStcMultipart:url",url);
 		var xhr=new XMLHttpRequest();
 		xhr.open("POST",url+"?uploads",true);
@@ -673,7 +674,7 @@
 							secondXhr.open("PUT",url+'?'+queryString,true);
 							secondXhr.setRequestHeader("Authorization",data&&data.stcAuthorization);
 							secondXhr.setRequestHeader("x-amz-content-sha256",data&&data.stcContentSha256);
-							//secondXhr.setRequestHeader("x-amz-date",data&&data.stcDate);
+							secondXhr.setRequestHeader("x-amz-date",data&&data.stcDate);
 							secondXhr.setRequestHeader("Content-Type",type);
 							
 							secondXhr.send(fileChunk);
