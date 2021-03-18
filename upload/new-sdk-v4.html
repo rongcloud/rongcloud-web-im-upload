@@ -27,9 +27,9 @@
 
     </br>
     </br>
-    是否为stc多段上传：
+    <!-- 是否为stc多段上传：
     <input type="radio" value="false" name="stcMultipart" checked>否
-    <input type="radio" value="true" name="stcMultipart">是
+    <input type="radio" value="true" name="stcMultipart">是 -->
     </br>
     </br>
     <div id="innerText"></div>
@@ -52,6 +52,7 @@
             appkey,
             navigators:['http://navqa.cn.ronghub.com']
           });
+          window.im=im;
           im.connect({token}).then((user) => {
             console.log('链接成功, 链接用户 id 为: ', user.id);
           }).catch(function(error) {
@@ -72,11 +73,12 @@
           domain: 'upload.qiniup.com',
           fileType: fileType,
           getToken: function(callback) {
-            var els=document.getElementsByName("stcMultipart");
-            var el=els&&Array.from(els).find((item)=>{
-              return item.checked===true;
-            })
-            if(el.value==="false"){
+            // var els=document.getElementsByName("stcMultipart");
+            // var el=els&&Array.from(els).find((item)=>{
+            //   return item.checked===true;
+            // })
+            var file=$uploadEl.files&&$uploadEl.files[0];
+            if(file.size<4*1024*1024){
               im.getFileToken(fileType).then(function(data) {
                 console.log("getFileToken",data);
                 callback(data.token, data);
@@ -137,8 +139,9 @@
           type = filename.substring(index);
         return type in imageType ? 'img': 'file';
       }
+      var $uploadEl = document.getElementById('uploadEl');
       window.onload = () => {
-        const $uploadEl = document.getElementById('uploadEl');
+        
         $uploadEl.onchange = (e) => {
           console.log(e.target.files[0]);
           const fileType = getFileType(e.target.files[0].name);

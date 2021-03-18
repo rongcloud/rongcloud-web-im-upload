@@ -525,7 +525,9 @@
 		var stcHeader=options?options.stcHeader:{};
 		var type=file&&file.type;
 		var fileName=options.uploadFileName;
-		var fileType=type.indexOf("image")>-1?RongIMLib.FileType.IMAGE:RongIMLib.FileType.FILE;
+		//RongIMLib.FileType {1: "IMAGE", 2: "AUDIO", 3: "VIDEO", 4: "FILE", 5: "SIGHT", 6: "COMBINE_HTML"}
+		//v4没有声明RongIMLib.FileType.IMAGE
+		var fileType=type.indexOf("image")>-1?1:4;
 		var proto=getProtocol();
 		//获取文件块数
 		var chunks=Math.ceil(file.size/options.stc_chunk_size);
@@ -568,7 +570,7 @@
 		};
 
         //获取签名验证方法
-		var im=RongIMLib&&RongIMLib.RongIMClient&&RongIMLib.RongIMClient.getInstance&&RongIMLib.RongIMClient.getInstance()||{};
+		var im=RongIMLib&&RongIMLib.RongIMClient&&RongIMLib.RongIMClient.getInstance&&RongIMLib.RongIMClient.getInstance()||window.im||{};
 		
 		//分段上传完成
 		//uploadId；分段上传第一次请求时获取的上传ID
@@ -579,80 +581,89 @@
 			Promise.all(promises).then((result)=>{
 				//签名验证需要的值
 				var queryString='uploadId='+uploadId;
-				//签名验证回调对象
-				var caBack={
-					onSuccess(data){
-						console.log("onSuccess",data)
-						result=result||[];
-						var thirdXhr=new XMLHttpRequest();
-						thirdXhr.open("POST",url+'?'+queryString,true);
-						thirdXhr.setRequestHeader("Authorization",data&&data.stcAuthorization);
-						thirdXhr.setRequestHeader("x-amz-content-sha256",data&&data.stcContentSha256);
-						thirdXhr.setRequestHeader("x-amz-date",data&&data.stcDate);
-						thirdXhr.setRequestHeader("Content-Type",type);
-						//声明进度回调
-						if (thirdXhr.upload && options.support_options) {
-							thirdXhr.upload.onprogress = function(event) {
-								callback.onProgress(event.loaded, event.total);
-							};
-						}
-						//设置请求体
-						var xml="<CompleteMultipartUpload xmlns='http://s3.amazonaws.com/doc/2006-03-01/'>";
-						result.map((item,index)=>xml+=`<Part><ETag>${item}</ETag><PartNumber>${index+1}</PartNumber></Part>`);
-						xml+="</CompleteMultipartUpload>";
-						thirdXhr.send(xml);
-						console.log("xml",xml);
-						thirdXhr.onreadystatechange = function() {
-							if (thirdXhr.readyState == 4) {
-								//204 成功但是没有返回数据
-								if(thirdXhr.status === 200||thirdXhr.status === 204){
-									var result = {};
-									result.name = file.name;
-									result.filename = options.uploadFileName; // 上传文件名
-									result.uploadMethod = RongIMLib.UploadMethod.STC;
-									callback.onCompleted(result);
-								} else {
-									callback.onError("uploadStcMultipart:upload does not end");
-								}
-							}
+				
+				function onSuccess(data){
+					console.log("onSuccess",data);
+					console.log("onSuccess:uploadId",uploadId)
+					result=result||[];
+					var thirdXhr=new XMLHttpRequest();
+					thirdXhr.open("POST",url+'?'+queryString,true);
+					thirdXhr.setRequestHeader("Authorization",data&&data.stcAuthorization);
+					thirdXhr.setRequestHeader("x-amz-content-sha256",data&&data.stcContentSha256);
+					thirdXhr.setRequestHeader("x-amz-date",data&&data.stcDate);
+					thirdXhr.setRequestHeader("Content-Type",type);
+					//声明进度回调
+					if (thirdXhr.upload && options.support_options) {
+						thirdXhr.upload.onprogress = function(event) {
+							callback.onProgress(event.loaded, event.total);
 						};
-					},
-					//签名验证失败回调
-					onError(error){
-						callback.onError("uploadStcMultipart:"+error);
 					}
+					//设置请求体
+					var xml="<CompleteMultipartUpload xmlns='http://s3.amazonaws.com/doc/2006-03-01/'>";
+					result.map((item,index)=>xml+=`<Part><ETag>${item}</ETag><PartNumber>${index+1}</PartNumber></Part>`);
+					xml+="</CompleteMultipartUpload>";
+					thirdXhr.send(xml);
+					console.log("xml",xml);
+					thirdXhr.onreadystatechange = function() {
+						if (thirdXhr.readyState == 4) {
+							//204 成功但是没有返回数据
+							if(thirdXhr.status === 200||thirdXhr.status === 204){
+								var result = {};
+								result.name = file.name;
+								result.filename = options.uploadFileName; // 上传文件名
+								result.uploadMethod = RongIMLib.UploadMethod.STC;
+								callback.onCompleted(result);
+							} else {
+								callback.onError("uploadStcMultipart:upload does not end");
+							}
+						}
+					};
+				}
+				//签名验证失败回调
+				function onError(error){
+					callback.onError("uploadStcMultipart:"+error);
 				}
 				//签名验证
-				im.getFileToken(fileType, caBack, fileName, "POST", queryString);
+				//v4把im声明到全局
+				if(window.im){
+					im.getFileToken(fileType, fileName, "POST", queryString).then(onSuccess,onError);
+				}else{
+					//v2版本
+					im.getFileToken(fileType, {onSuccess,onError}, fileName, "POST", queryString);
+				}
+				
 			},(error)=>{
 				//上传失败，打印错误
 				callback.onError("uploadStcMultipart:upload fail");
 				//上传失败，删除已上传的内容
 				var queryString='uploadId='+uploadId;
-				var caBack={
-					onSuccess(data){
-						var endXhr=new XMLHttpRequest();
-						endXhr.open("DELETE",url+'?uploadId='+uploadId,true);
-						endXhr.setRequestHeader("Authorization",data&&data.stcAuthorization);
-						endXhr.setRequestHeader("x-amz-content-sha256",data&&data.stcContentSha256);
-						endXhr.setRequestHeader("x-amz-date",data&&data.stcDate);
-						endXhr.setRequestHeader("Content-Type",type);
-						endXhr.send();
-						endXhr.onreadystatechange=function(){
-							if (endXhr.readyState == 4) {
-								if(endXhr.status === 200||endXhr.status === 204){
-									console.log("uploadStcMultipart: delete upload");
-								}
+				function onSuccess(data){
+					var endXhr=new XMLHttpRequest();
+					endXhr.open("DELETE",url+'?uploadId='+uploadId,true);
+					endXhr.setRequestHeader("Authorization",data&&data.stcAuthorization);
+					endXhr.setRequestHeader("x-amz-content-sha256",data&&data.stcContentSha256);
+					endXhr.setRequestHeader("x-amz-date",data&&data.stcDate);
+					endXhr.setRequestHeader("Content-Type",type);
+					endXhr.send();
+					endXhr.onreadystatechange=function(){
+						if (endXhr.readyState == 4) {
+							if(endXhr.status === 200||endXhr.status === 204){
+								console.log("uploadStcMultipart: delete upload");
 							}
 						}
-
-					},
-					onError(error){
-						console.log("uploadStcMultipart:",error);
 					}
+
+				}
+				function onError(error){
+					console.log("uploadStcMultipart:",error);
 				}
 				//签名验证
-				im.getFileToken(fileType, caBack, fileName, "DELETE", queryString);
+				if(window.im){
+					im.getFileToken(fileType, fileName, "DELETE", queryString).then(onSuccess,onError);
+				}else{
+					im.getFileToken(fileType, {onSuccess,onError}, fileName, "DELETE", queryString);
+				}
+				
 			})
 		}
 
@@ -663,43 +674,45 @@
 			function temp(i){
 				return new Promise((resolve,reject)=>{
 					var queryString='partNumber='+i+'&uploadId='+uploadId;
-					//签名验证回调对象
-					var caBack={
-						onSuccess(data){
-							console.log("signature "+i+" onSuccess",data);
-							//上传的部分文件，slice以B为单位,待定，问下移动端
-							var fileChunk=file&&file.slice((i-1)*options.stc_chunk_size,i*options.stc_chunk_size);
-							console.log("fileChunk:size",fileChunk.size);
-							var secondXhr=new XMLHttpRequest();
-							secondXhr.open("PUT",url+'?'+queryString,true);
-							secondXhr.setRequestHeader("Authorization",data&&data.stcAuthorization);
-							secondXhr.setRequestHeader("x-amz-content-sha256",data&&data.stcContentSha256);
-							secondXhr.setRequestHeader("x-amz-date",data&&data.stcDate);
-							secondXhr.setRequestHeader("Content-Type",type);
-							
-							secondXhr.send(fileChunk);
-							secondXhr.onreadystatechange = function() {
-								if (secondXhr.readyState == 4) {
-									if(secondXhr.status === 200||secondXhr.status === 204){
-										//获取返回头的etag
-										var eTag=secondXhr.getResponseHeader("etag");
-										console.log("etag",eTag);
-										resolve(eTag)
-									} else {
-										//上传失败，返回请求对象
-										reject(secondXhr.response);
-									}
+					function onSuccess(data){
+						console.log("signature "+i+" onSuccess",data);
+						//上传的部分文件，slice以B为单位,待定，问下移动端
+						var fileChunk=file&&file.slice((i-1)*options.stc_chunk_size,i*options.stc_chunk_size);
+						console.log("fileChunk:size",fileChunk.size);
+						var secondXhr=new XMLHttpRequest();
+						secondXhr.open("PUT",url+'?'+queryString,true);
+						secondXhr.setRequestHeader("Authorization",data&&data.stcAuthorization);
+						secondXhr.setRequestHeader("x-amz-content-sha256",data&&data.stcContentSha256);
+						secondXhr.setRequestHeader("x-amz-date",data&&data.stcDate);
+						secondXhr.setRequestHeader("Content-Type",type);
+						
+						secondXhr.send(fileChunk);
+						secondXhr.onreadystatechange = function() {
+							if (secondXhr.readyState == 4) {
+								if(secondXhr.status === 200||secondXhr.status === 204){
+									//获取返回头的etag
+									var eTag=secondXhr.getResponseHeader("etag");
+									console.log("etag",eTag);
+									resolve(eTag)
+								} else {
+									//上传失败，返回请求对象
+									reject(secondXhr.response);
 								}
-							};
-		
-						},
-						//签名验证失败回调
-						onError(e){
-							reject(e)
-						}
+							}
+						};
+	
+					}
+					//签名验证失败回调
+					function onError(e){
+						reject(e)
 					}
 					//签名验证
-					im.getFileToken(fileType, caBack, fileName, "PUT", queryString);
+					if(window.im){
+						im.getFileToken(fileType, fileName, "PUT", queryString).then(onSuccess,onError);
+					}else{
+						im.getFileToken(fileType, {onSuccess,onError}, fileName, "PUT", queryString);
+					}
+					
 				})
 			}
 			//初始化上传文件请求，即顺序发送请求，获取promises数组
@@ -748,22 +761,24 @@
 
 		//uploadStcMultipart(file,opts,callback);
 		if(file.size && opts.chunk_size < file.size){
-			for(var j=0;j<uploadOrderList.length;j++){
-				var urlItem=uploadOrderList[j];
-				if(urlItem[0]==="stc"){
-					uploadStcMultipart(file,opts,callback);
-					break;
-				}else if(urlItem[0]==="qiniu"){
-					isStreamUpload = true;
-					var uniqueName = opts['genUId'](file);
-					var suffix = file.name.substr(file.name.lastIndexOf('.'));
-					uniqueName = uniqueName + suffix;
-					file.uniqueName = uniqueName;
-					opts.stream = true;
-					uploadNextChunk(file, opts, callback);
-					break;
-				}
-			}
+			uploadStcMultipart(file,opts,callback);
+			//由于七牛多段上传不要求，而且与stc多段上传在第一次调用getFileToken传参不一致，所以暂时屏蔽掉
+			// for(var j=0;j<uploadOrderList.length;j++){
+			// 	var urlItem=uploadOrderList[j];
+			// 	if(urlItem[0]==="stc"){
+			// 		uploadStcMultipart(file,opts,callback);
+			// 		break;
+			// 	}else if(urlItem[0]==="qiniu"){
+			// 		isStreamUpload = true;
+			// 		var uniqueName = opts['genUId'](file);
+			// 		var suffix = file.name.substr(file.name.lastIndexOf('.'));
+			// 		uniqueName = uniqueName + suffix;
+			// 		file.uniqueName = uniqueName;
+			// 		opts.stream = true;
+			// 		uploadNextChunk(file, opts, callback);
+			// 		break;
+			// 	}
+			// }
 			
 		} else {
 			var data = opts['data'](file, opts); // 取 formData
@@ -773,4 +788,5 @@
 		
 	}
 	win.uploadProcess = uploadData;
+	//console.log("im",im)
 })(window);

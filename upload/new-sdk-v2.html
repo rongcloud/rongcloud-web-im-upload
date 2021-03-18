@@ -67,9 +67,9 @@
 		<input type="button" value="连接" onclick="connect()">
 		</br>
 		</br>
-		是否为stc多段上传：
+		<!-- 是否为stc多段上传：
 		<input type="radio" value="false" name="stcMultipart" checked>否
-		<input type="radio" value="true" name="stcMultipart">是
+		<input type="radio" value="true" name="stcMultipart">是 -->
 		<p>
 			<input type="button" value="清空文件" onclick="clearFile()">
 			<input type="file" id="file-Id" value="upload-file" />
@@ -231,7 +231,7 @@
 
 		// 上传文件
 		var file = document.getElementById("file-Id");
-		
+	    
 
 		var config = { 
 			domain: 'upload.qiniup.com',
@@ -243,11 +243,16 @@
 				 * 2、文件不可迁移。
 				 ****************************
 				 */
-				var els=document.getElementsByName("stcMultipart");
-				var el=els&&Array.from(els).find((item)=>{
-					return item.checked===true;
-				})
-				if(el.value==="false"){
+				// var els=document.getElementsByName("stcMultipart");
+				// var el=els&&Array.from(els).find((item)=>{
+				// 	return item.checked===true;
+				// })
+				//var temp=new File(file);
+				//console.log("file.size",temp.size)
+				var _file = file.files[0];
+				//console.log("_file.size:",_file.size);
+				//文件大于4M走stc多段上传逻辑
+				if(_file.size<4*1024*1024){
 					im.getFileToken(this.fileType, {
 						onSuccess: function(data){
 							console.log("getFileToken:callback",data);
@@ -288,6 +293,7 @@
 
 		file.onchange = function(){
 			var _file = this.files[0];
+			//console.log("_file.size",_file.size);
 			initType[getFileType(_file.name)](_file);
 		};
 	};	
@@ -327,6 +333,7 @@
 		RongIMLib.RongIMClient.connect(token, {
 	        onSuccess: function(userId) {
 	          	showResult("connected." + userId, true);
+				console.log("RongIMLib.FileType",RongIMLib.FileType)
 	          	onConnected(RongIMLib.RongIMClient.getInstance());
 	        },
 	        onTokenIncorrect: function() {
