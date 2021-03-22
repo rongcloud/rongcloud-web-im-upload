@@ -106,7 +106,7 @@
             console.log('上传成功--: ', data); // data.thumbnail 可拿到缩略值
             getFileUrl(data, fileType).then((rs) => {
               document.getElementById('downloadUrlEl').innerHTML = `<p>上传成功</p><p>下载地址：${rs.downloadUrl}</p>`
-              console.log(rs.downloadUrl);
+              //console.log(rs.downloadUrl);
             });
           },
           onError: function(error) {
