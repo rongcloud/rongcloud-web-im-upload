@@ -573,6 +573,8 @@
 		var im=RongIMLib&&RongIMLib.RongIMClient&&RongIMLib.RongIMClient.getInstance&&RongIMLib.RongIMClient.getInstance()||window.im||{};
 		//记录失败的文件索引
 		var failedPartNumbers=[];
+		//记录成功的eTag,存在一种情况，部分成功，部分失败
+		var successETags=[];
 
 		//分段上传完成
 		//uploadId；分段上传第一次请求时获取的上传ID
@@ -584,17 +586,6 @@
 				promises.push(getETags(uploadId,i));
 			}
 			result(uploadId,promises)
-			//每隔10秒发送50个并行请求
-			// var start=0;
-			// var division=50;
-			// var index=setInterval(()=>{
-			// 	var end=Math.min(start+division,chunks);
-			// 	if(start>=promises.length) clearInterval(index);
-			// 	else{
-			// 		result(uploadId,promises.slice(start,end));
-			// 		start+=division;
-			// 	}
-			// },10*1000)
 			
 		}
 
@@ -608,7 +599,6 @@
 				function onSuccess(data){
 					console.log("onSuccess",data);
 					console.log("onSuccess:uploadId",uploadId)
-					result=result||[];
 					var thirdXhr=new XMLHttpRequest();
 					thirdXhr.open("POST",url+'?'+queryString,true);
 					thirdXhr.setRequestHeader("Authorization",data&&data.stcAuthorization);
@@ -618,7 +608,7 @@
 					
 					//设置请求体
 					var xml="<CompleteMultipartUpload xmlns='http://s3.amazonaws.com/doc/2006-03-01/'>";
-					result.map((item,index)=>xml+=`<Part><ETag>${item}</ETag><PartNumber>${index+1}</PartNumber></Part>`);
+					successETags.map((item,index)=>xml+=`<Part><ETag>${item}</ETag><PartNumber>${index+1}</PartNumber></Part>`);
 					xml+="</CompleteMultipartUpload>";
 					thirdXhr.send(xml);
 					console.log("xml",xml);
@@ -641,18 +631,28 @@
 				function onError(error){
 					callback.onError("uploadStcMultipart:"+error);
 				}
-				//签名验证
-				//v4把im声明到全局
-				if(window.im){
-					im.getFileToken(fileType, fileName, "POST", queryString).then(onSuccess,onError);
+				if(successETags.length===chunks){
+					//签名验证
+					//v4把im声明到全局
+					if(window.im){
+						im.getFileToken(fileType, fileName, "POST", queryString).then(onSuccess,onError);
+					}else{
+						//v2版本
+						im.getFileToken(fileType, {onSuccess,onError}, fileName, "POST", queryString);
+					}
 				}else{
-					//v2版本
-					im.getFileToken(fileType, {onSuccess,onError}, fileName, "POST", queryString);
+					var promises=[];
+					//初始化上传文件请求，即顺序发送请求，获取promises数组
+					for(var i of failedPartNumbers){
+						promises.push(getETags(uploadId,i));
+					}
+					result(uploadId,promises);
 				}
+				
 				
 			},(error)=>{
 				//上传失败，重新上传
-				callback.onError("uploadStcMultipart:upload failed chunkFile"+failedPartNumbers.toString());
+				callback.onError("uploadStcMultipart: chunkFiles upload failed and those will reupload");
 				var promises=[];
 				//初始化上传文件请求，即顺序发送请求，获取promises数组
 				for(var i of failedPartNumbers){
@@ -686,6 +686,7 @@
 								//获取返回头的etag
 								var eTag=secondXhr.getResponseHeader("etag");
 								console.log("etag",eTag);
+								successETags.push(eTag);
 								resolve(eTag)
 							} else {
 								if(!failedPartNumbers.includes(i))failedPartNumbers.push(i)

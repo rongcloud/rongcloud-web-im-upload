@@ -89,7 +89,7 @@
 		* 1、有效期为 1 个月<br/>
 		* 2、文件不支持迁移<br/>
 		******************************<br/>
-	</span>
+		</span>
     </div>
 	
 </body>
@@ -355,6 +355,14 @@
 		file.value=null; 
 		progressBar.style.width = '0%';
 	    progressContent.innerHTML = "";
+		getDom('tips').innerHTML=`
+			<span class="warn">
+			******************************<br/>
+			* 使用融云文件存储注意事项： <br/>
+			* 1、有效期为 1 个月<br/>
+			* 2、文件不支持迁移<br/>
+			******************************<br/>
+			</span>`;
 	}
 </script>
 
