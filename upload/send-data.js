@@ -467,7 +467,7 @@
 		var protocol = getProtocol();
 
 		//获取aws3上传地址对象
-	    const host = uploadOrderList[1][1]
+	    const host = uploadOrderList[0][1]
 		//获取上传地址
 		var url = 'https://' + host +'/' + options.stcBucketName+'/' + options.uploadFileName;
 		uploadOrderList.shift();
@@ -637,7 +637,7 @@
 				function onError(error){
 					callback.onError("uploadStcMultipart:"+error);
 				}
-				if(successETagMap.keys().length===chunks){
+				if(successETagMap.size===chunks){
 					//签名验证
 					//v4把im声明到全局
 					if(window.im){
