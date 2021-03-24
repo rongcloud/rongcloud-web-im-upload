@@ -523,24 +523,27 @@
 	//详情参考文档，https://gitbook.rongcloud.net/server/docs/dashboard/discuss/stc-s3.html
     function uploadStcMultipart(file,options,callback){
 		var stcHeader=options?options.stcHeader:{};
-		var type=file&&file.type;
+		var type=file&&file.type||"text/plain";
 		var fileName=options.uploadFileName;
+		//console.log("type",type);
 		//RongIMLib.FileType {1: "IMAGE", 2: "AUDIO", 3: "VIDEO", 4: "FILE", 5: "SIGHT", 6: "COMBINE_HTML"}
 		//v4没有声明RongIMLib.FileType.IMAGE
 		var fileType=type.indexOf("image")>-1?1:4;
-		var proto=getProtocol();
 		//获取文件块数
 		var chunks=Math.ceil(file.size/options.stc_chunk_size);
 		var osssConfig=options&&JSON.parse(options.ossConfig?options.ossConfig:"");
 		if(!Array.isArray(osssConfig)) osssConfig=[];
-		var stcConfig=osssConfig.find((item)=>Object.keys(item).includes("stc"));
+		var stcConfig=osssConfig.find((item)=>{
+			var keys=Object.keys(item)
+			return keys.includes("stc");
+		});
 		//stc不支持http
 		var url = 'https://' + stcConfig.stc +'/' + options.stcBucketName+'/' + fileName;
 		console.log("uploadStcMultipart:url",url);
 		var xhr=new XMLHttpRequest();
 		xhr.open("POST",url+"?uploads",true);
 		//html为预览，其他是下载
-		if(file.type==="text/html"){
+		if(type==="text/html"){
 			xhr.setRequestHeader("Content-Disposition","inline;"); 
 		}else{
 			xhr.setRequestHeader("Content-Disposition","attachment;");

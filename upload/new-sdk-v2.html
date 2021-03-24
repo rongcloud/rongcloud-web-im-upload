@@ -97,8 +97,10 @@
 
 	
 
-	
-   
+	//上传文件
+	var files=document.getElementById("file-Id");
+	//上传文件的第一个
+	var file=null;	
 	var getDom = function(id){
 		return document.getElementById(id);
 	};
@@ -229,10 +231,7 @@
 			} 
 		};
 
-		// 上传文件
-		var file = document.getElementById("file-Id");
-	    
-
+		
 		var config = { 
 			domain: 'upload.qiniup.com',
 			fileType: RongIMLib.FileType.IMAGE,
@@ -243,35 +242,21 @@
 				 * 2、文件不可迁移。
 				 ****************************
 				 */
-				// var els=document.getElementsByName("stcMultipart");
-				// var el=els&&Array.from(els).find((item)=>{
-				// 	return item.checked===true;
-				// })
-				//var temp=new File(file);
-				//console.log("file.size",temp.size)
-				var _file = file.files[0];
-				//console.log("_file.size:",_file.size);
+				var caBack={
+						onSuccess: function(data){
+							console.log("getFileToken:callback",data);
+							callback(data.token, data);
+						},
+						onError: function(error){
+							showResult('getFileToken error:' + error);
+						}
+					}
+				console.log("file type",file.type);
 				//文件大于4M走stc多段上传逻辑
-				if(_file.size<4*1024*1024){
-					im.getFileToken(this.fileType, {
-						onSuccess: function(data){
-							console.log("getFileToken:callback",data);
-							callback(data.token, data);
-						},
-						onError: function(error){
-							showResult('getFileToken error:' + error);
-						}
-					},undefined);
+				if(file.size<4*1024*1024){
+					im.getFileToken(this.fileType, caBack,undefined);
 				}else{
-					im.getFileToken(this.fileType, {
-						onSuccess: function(data){
-							console.log("getFileToken:callback",data);
-							callback(data.token, data);
-						},
-						onError: function(error){
-							showResult('getFileToken error:' + error);
-						}
-					},undefined,"POST","uploads");
+					im.getFileToken(this.fileType, caBack,undefined,"POST","uploads");
 				}
 				
 			}
@@ -290,19 +275,17 @@
 				});
 			}
 		};
-
-		file.onchange = function(){
-			var _file = this.files[0];
-			//console.log("_file.size",_file.size);
-			initType[getFileType(_file.name)](_file);
+		
+		files.onchange = function(){
+			file = this.files[0];
+			//console.log("change",file);
+			initType[getFileType(file.name)](file);
 		};
 	};	
 
 	var connect = function(){
 		var appkey = document.getElementById("appkey").value;
-		console.log("appkey",appkey);
 		var token = document.getElementById("token").value;
-		console.log("token",token);
 		//测试环境
 		//appkey='c9kqb3rdkbb8j';
 		//测试环境
