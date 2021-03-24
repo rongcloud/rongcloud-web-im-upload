@@ -595,7 +595,7 @@
 		function result(uploadId,promises){
 			if(!promises||!Array.isArray(promises)||promises.length===0) return;
 			//所有请求成功后返回的etag会按顺序保存到result数组中
-			Promise.all(promises).then((result)=>{
+			Promise.all(promises).then(()=>{
 				//签名验证需要的值
 				var queryString='uploadId='+uploadId;
 				
