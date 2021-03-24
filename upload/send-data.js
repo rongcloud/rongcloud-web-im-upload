@@ -612,9 +612,15 @@
 					//设置请求体
 					var xml="<CompleteMultipartUpload xmlns='http://s3.amazonaws.com/doc/2006-03-01/'>";
 					//successETagMap.map((item,index)=>xml+=`<Part><ETag>${item}</ETag><PartNumber>${index+1}</PartNumber></Part>`);
-					successETagMap.forEach((value,key)=>{
-						xml+=`<Part><ETag>${value}</ETag><PartNumber>${key}</PartNumber></Part>`
+					//从小到大排序
+					var newKeys=Array.from(successETagMap.keys()||[]).sort((a,b)=>a-b);
+					console.log("keys",newKeys);
+					newKeys.map((key)=>{
+						xml+=`<Part><ETag>${successETagMap.get(key)}</ETag><PartNumber>${key}</PartNumber></Part>`
 					})
+					// successETagMap.forEach((value,key)=>{
+					// 	xml+=`<Part><ETag>${value}</ETag><PartNumber>${key}</PartNumber></Part>`
+					// })
 					xml+="</CompleteMultipartUpload>";
 					thirdXhr.send(xml);
 					console.log("xml",xml);
