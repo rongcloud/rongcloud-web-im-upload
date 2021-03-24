@@ -467,7 +467,7 @@
 		var protocol = getProtocol();
 
 		//获取aws3上传地址对象
-	    const host = uploadOrderList[0][1]
+	    const host = uploadOrderList[1][1]
 		//获取上传地址
 		var url = 'https://' + host +'/' + options.stcBucketName+'/' + options.uploadFileName;
 		uploadOrderList.shift();
@@ -577,7 +577,7 @@
 		//记录失败的文件索引
 		var failedPartNumbers=[];
 		//记录成功的eTag,存在一种情况，部分成功，部分失败
-		var successETags=[];
+		var successETagMap=new Map();;
 
 		//分段上传完成
 		//uploadId；分段上传第一次请求时获取的上传ID
@@ -611,7 +611,10 @@
 					
 					//设置请求体
 					var xml="<CompleteMultipartUpload xmlns='http://s3.amazonaws.com/doc/2006-03-01/'>";
-					successETags.map((item,index)=>xml+=`<Part><ETag>${item}</ETag><PartNumber>${index+1}</PartNumber></Part>`);
+					//successETagMap.map((item,index)=>xml+=`<Part><ETag>${item}</ETag><PartNumber>${index+1}</PartNumber></Part>`);
+					successETagMap.forEach((value,key)=>{
+						xml+=`<Part><ETag>${value}</ETag><PartNumber>${key}</PartNumber></Part>`
+					})
 					xml+="</CompleteMultipartUpload>";
 					thirdXhr.send(xml);
 					console.log("xml",xml);
@@ -634,7 +637,7 @@
 				function onError(error){
 					callback.onError("uploadStcMultipart:"+error);
 				}
-				if(successETags.length===chunks){
+				if(successETagMap.keys().length===chunks){
 					//签名验证
 					//v4把im声明到全局
 					if(window.im){
@@ -688,8 +691,8 @@
 							if(secondXhr.status === 200||secondXhr.status === 204){
 								//获取返回头的etag
 								var eTag=secondXhr.getResponseHeader("etag");
-								console.log("etag",eTag);
-								successETags.push(eTag);
+								console.log("etag:"+i,eTag);
+								successETagMap.set(i,eTag)
 								resolve(eTag)
 							} else {
 								if(!failedPartNumbers.includes(i))failedPartNumbers.push(i)
@@ -702,7 +705,9 @@
 				}
 				//签名验证失败回调
 				function onError(e){
-					reject(e)
+					console.log("getETags:签名验证失败")
+					if(!failedPartNumbers.includes(i))failedPartNumbers.push(i)
+					reject(i)
 				}
 				//签名验证
 				if(window.im){
@@ -776,6 +781,7 @@
 			var data = opts['data'](file, opts); // 取 formData
 			uploadOrderObject[uploadOrderList[0][0]](data, opts, callback, file)
 			//uploadS3(data, opts, callback, file);
+			//uploadStc(data, opts, callback, file)
 		}
 		
 	}
