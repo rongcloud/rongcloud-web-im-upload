@@ -438,7 +438,7 @@
 		};
 		//初始化异步请求
 		xhr.open(options.method, url, true);
-		xhr.withCredentials=true;
+		//xhr.withCredentials=true;
 		var s3Header=options?options.s3Header:{};
 		//若为图片，需要设置如下表单项
 		var type=file&&file.type;
