@@ -78,21 +78,21 @@
             //   return item.checked===true;
             // })
             var file=$uploadEl.files&&$uploadEl.files[0];
-            if(file.size<4*1024*1024){
-              im.getFileToken(fileType).then(function(data) {
-                console.log("getFileToken",data);
-                callback(data.token, data);
-              }).catch(function(error) {
-                console.log('获取上传 token 失败', error);
-              });
-            }else{
-              im.getFileToken(fileType,undefined,'POST','uploads').then(function(data) {
-                console.log("getFileToken",data);
-                callback(data.token, data);
-              }).catch(function(error) {
-                console.log('获取上传 token 失败', error);
-              });
-            }
+            // if(file.size<4*1024*1024){
+            im.getFileToken(fileType).then(function(data) {
+              console.log("getFileToken",data);
+              callback(data.token, data);
+            }).catch(function(error) {
+              console.log('获取上传 token 失败', error);
+            });
+            // }else{
+            //   im.getFileToken(fileType,undefined,'POST','uploads').then(function(data) {
+            //     console.log("getFileToken",data);
+            //     callback(data.token, data);
+            //   }).catch(function(error) {
+            //     console.log('获取上传 token 失败', error);
+            //   });
+            // }
             
           }
         }

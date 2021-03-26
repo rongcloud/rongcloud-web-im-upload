@@ -251,14 +251,7 @@
 							showResult('getFileToken error:' + error);
 						}
 					}
-				console.log("file type",file.type);
-				//文件大于4M走stc多段上传逻辑
-				if(file.size<4*1024*1024){
-					im.getFileToken(this.fileType, caBack,undefined);
-				}else{
-					im.getFileToken(this.fileType, caBack,undefined,"POST","uploads");
-				}
-				
+				im.getFileToken(this.fileType, caBack,undefined);
 			}
 		};
 

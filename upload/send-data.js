@@ -287,7 +287,7 @@
 		xhr.setRequestHeader('x-bce-date', bosHeader.bosDate);
 		xhr.send(file);
 	}
-
+	
 	function uploadQiniu(data, options, callback, file) {
 		var issuedQnUploadHost = PROTOCOL_HTTPS + options.uploadHost.qiniu;
 		if (isStreamUpload) {
@@ -522,13 +522,16 @@
 	//3.结束上传请求，
 	//详情参考文档，https://gitbook.rongcloud.net/server/docs/dashboard/discuss/stc-s3.html
     function uploadStcMultipart(file,options,callback){
-		var stcHeader=options?options.stcHeader:{};
+		//var stcHeader=options?options.stcHeader:{};
 		var type=file&&file.type||"text/plain";
-		var fileName=options.uploadFileName;
-		//console.log("type",type);
+		var fileType=type.indexOf("image")>-1?1:4;
+		var fileName;
+		var url ;
+		//获取签名验证方法
+		var im=RongIMLib&&RongIMLib.RongIMClient&&RongIMLib.RongIMClient.getInstance&&RongIMLib.RongIMClient.getInstance()||window.im||{};
 		//RongIMLib.FileType {1: "IMAGE", 2: "AUDIO", 3: "VIDEO", 4: "FILE", 5: "SIGHT", 6: "COMBINE_HTML"}
 		//v4没有声明RongIMLib.FileType.IMAGE
-		var fileType=type.indexOf("image")>-1?1:4;
+		
 		//获取文件块数
 		var chunks=Math.ceil(file.size/options.stc_chunk_size);
 		var osssConfig=options&&JSON.parse(options.ossConfig?options.ossConfig:"");
@@ -537,43 +540,61 @@
 			var keys=Object.keys(item)
 			return keys.includes("stc");
 		});
-		//stc不支持http
-		var url = 'https://' + stcConfig.stc +'/' + options.stcBucketName+'/' + fileName;
-		console.log("uploadStcMultipart:url",url);
-		var xhr=new XMLHttpRequest();
-		xhr.open("POST",url+"?uploads",true);
-		//html为预览，其他是下载
-		if(type==="text/html"){
-			xhr.setRequestHeader("Content-Disposition","inline;"); 
-		}else{
-			xhr.setRequestHeader("Content-Disposition","attachment;");
-		}
-		xhr.setRequestHeader("Authorization",stcHeader.stcAuthorization);
-		xhr.setRequestHeader("x-amz-content-sha256",stcHeader.stcContentSha256);
-		xhr.setRequestHeader("x-amz-date",stcHeader.stcDate);
-		xhr.setRequestHeader("Content-Type",type);
-		xhr.send();
 		
-		//console.log(RongIMLib);
-		xhr.onreadystatechange = function(event) {
-			if (xhr.readyState == 4) {
-				//返回的是一个xml格式字符串，包含uploadid
-                var text=xhr.response;
-				//获取uploadId
-				var reg=/(?<=<UploadId>)\S*(?=<\/UploadId>)/g;
-				var uploadId=text.match(reg);
-				console.log("uploadId",uploadId);
-				//204 成功但是没有返回数据
-				if(xhr.status === 200||xhr.status === 204){
-					executeResult(uploadId&&uploadId[0])
-				} else {
-					callback.onError('uploadStcMultipart:did not get uploadId')
-				}
+		var queryString='uploads';
+		
+		function onSuccess(data){
+			fileName=data.fileName;
+			//stc不支持http
+			url= 'https://' + stcConfig.stc +'/' + options.stcBucketName+'/' + fileName;
+			console.log("uploadStcMultipart:url",url);
+			var xhr=new XMLHttpRequest();
+			xhr.open("POST",url+"?"+queryString,true);
+			//html为预览，其他是下载
+			if(type==="text/html"){
+				xhr.setRequestHeader("Content-Disposition","inline;"); 
+			}else{
+				xhr.setRequestHeader("Content-Disposition","attacshment;");
 			}
-		};
+			xhr.setRequestHeader("Authorization",data&&data.stcAuthorization);
+			xhr.setRequestHeader("x-amz-content-sha256",data&&data.stcContentSha256);
+			xhr.setRequestHeader("x-amz-date",data&&data.stcDate);
+			xhr.setRequestHeader("Content-Type",type);
+			xhr.send();
+			
+			//console.log(RongIMLib);
+			xhr.onreadystatechange = function(event) {
+				if (xhr.readyState == 4) {
+					//返回的是一个xml格式字符串，包含uploadid
+					var text=xhr.response;
+					//获取uploadId
+					var reg=/(?<=<UploadId>)\S*(?=<\/UploadId>)/g;
+					var uploadId=text.match(reg);
+					console.log("uploadId",uploadId);
+					//204 成功但是没有返回数据
+					if(xhr.status === 200||xhr.status === 204){
+						executeResult(uploadId&&uploadId[0])
+					} else {
+						callback.onError('uploadStcMultipart:did not get uploadId')
+					}
+				}
+			};
+		}
 
-        //获取签名验证方法
-		var im=RongIMLib&&RongIMLib.RongIMClient&&RongIMLib.RongIMClient.getInstance&&RongIMLib.RongIMClient.getInstance()||window.im||{};
+		//签名验证失败回调
+		function onError(error){
+			callback.onError("uploadStcMultipart:"+error);
+		}
+		
+
+		if(window.im){
+			im.getFileToken(fileType, fileName, "POST", queryString).then(onSuccess,onError);
+		}else{
+			//v2版本
+			im.getFileToken(fileType, {onSuccess,onError}, fileName, "POST", queryString);
+		}
+
+        
 		//记录失败的文件索引
 		var failedPartNumbers=[];
 		//记录成功的eTag,存在一种情况，部分成功，部分失败
@@ -762,8 +783,15 @@
 			uploadOrderList = [['qiniu', opts.domain], ['baidu', opts.uploadHost.bos]];
 		}
 
-		//uploadStcMultipart(file,opts,callback);
-		if(file.size && opts.chunk_size < file.size){
+		
+		var osssConfig=opts&&JSON.parse(opts.ossConfig||"");
+		if(!Array.isArray(osssConfig)) osssConfig=[];
+		var stcConfig=osssConfig.find((item)=>{
+			var keys=Object.keys(item)
+			return keys.includes("stc");
+		});
+		//如果stc的优先级为1，且文件大于4M，则走stc多段上传
+		if(stcConfig.p==1&&file.size>=4*1024*1024){
 			uploadStcMultipart(file,opts,callback);
 			//由于七牛多段上传不要求，而且与stc多段上传在第一次调用getFileToken传参不一致，所以暂时屏蔽掉
 			// for(var j=0;j<uploadOrderList.length;j++){
