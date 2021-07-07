@@ -397,6 +397,8 @@
     //aws3上传方法
 	//详情参考文档https://gitbook.rongcloud.net/server/docs/dashboard/discuss/aws-s3.html
 	function uploadS3(data, options, callback, file) {
+		//console.log('RongIMLib.RongIMClient.getInstance()',RongIMLib.RongIMClient.getInstance()._context.apiVersion)
+		
 		var fromData=new FormData();
 		var xhr = new XMLHttpRequest();
 		var protocol = getProtocol();
@@ -528,7 +530,7 @@
 		var fileName;
 		var url ;
 		//获取签名验证方法
-		var im=RongIMLib&&RongIMLib.RongIMClient&&RongIMLib.RongIMClient.getInstance&&RongIMLib.RongIMClient.getInstance()||window.im||{};
+		//var im=RongIMLib.RongIMClient.getInstance();
 		//RongIMLib.FileType {1: "IMAGE", 2: "AUDIO", 3: "VIDEO", 4: "FILE", 5: "SIGHT", 6: "COMBINE_HTML"}
 		//v4没有声明RongIMLib.FileType.IMAGE
 		
@@ -586,11 +588,15 @@
 			callback.onError("uploadStcMultipart:"+error);
 		}
 		
-
-		if(window.im){
+        let im;
+		//判断是v4还是v2,前面是v4，后面是v2
+		const version=RongIMLib.getInstance?RongIMLib.getInstance()._context.apiVersion:RongIMLib.RongIMClient.getInstance()._context.apiVersion;
+		if(version.startsWith('4')){
+			im=RongIMLib.getInstance();
 			im.getFileToken(fileType, fileName, "POST", queryString).then(onSuccess,onError);
 		}else{
 			//v2版本
+			im=RongIMLib.RongIMClient.getInstance();
 			im.getFileToken(fileType, {onSuccess,onError}, fileName, "POST", queryString);
 		}
 
@@ -667,7 +673,7 @@
 				if(successETagMap.size===chunks){
 					//签名验证
 					//v4把im声明到全局
-					if(window.im){
+					if(version.startsWith('4')){
 						im.getFileToken(fileType, fileName, "POST", queryString).then(onSuccess,onError);
 					}else{
 						//v2版本
@@ -737,7 +743,7 @@
 					reject(i)
 				}
 				//签名验证
-				if(window.im){
+				if(version.startsWith('4')){
 					im.getFileToken(fileType, fileName, "PUT", queryString).then(onSuccess,onError);
 				}else{
 					im.getFileToken(fileType, {onSuccess,onError}, fileName, "PUT", queryString);
@@ -784,38 +790,22 @@
 		}
 
 		
-		var osssConfig=opts&&JSON.parse(opts.ossConfig||"");
-		if(!Array.isArray(osssConfig)) osssConfig=[];
-		var stcConfig=osssConfig.find((item)=>{
-			var keys=Object.keys(item)
-			return keys.includes("stc");
-		});
+		var stcConfig;
+		if(opts.ossConfig){
+			var osssConfig=opts&&JSON.parse(opts.ossConfig);
+			if(!Array.isArray(osssConfig)) osssConfig=[];
+			stcConfig=osssConfig.find((item)=>{
+				var keys=Object.keys(item)
+				return keys.includes("stc");
+			});
+		}
+		
 		//如果stc的优先级为1，且文件大于4M，则走stc多段上传
-		if(stcConfig.p==1&&file.size>=4*1024*1024){
-			uploadStcMultipart(file,opts,callback);
-			//由于七牛多段上传不要求，而且与stc多段上传在第一次调用getFileToken传参不一致，所以暂时屏蔽掉
-			// for(var j=0;j<uploadOrderList.length;j++){
-			// 	var urlItem=uploadOrderList[j];
-			// 	if(urlItem[0]==="stc"){
-			// 		uploadStcMultipart(file,opts,callback);
-			// 		break;
-			// 	}else if(urlItem[0]==="qiniu"){
-			// 		isStreamUpload = true;
-			// 		var uniqueName = opts['genUId'](file);
-			// 		var suffix = file.name.substr(file.name.lastIndexOf('.'));
-			// 		uniqueName = uniqueName + suffix;
-			// 		file.uniqueName = uniqueName;
-			// 		opts.stream = true;
-			// 		uploadNextChunk(file, opts, callback);
-			// 		break;
-			// 	}
-			// }
-			
+		if(stcConfig&&stcConfig.p==1&&file.size>=4*1024*1024){
+			uploadStcMultipart(file,opts,callback);	
 		} else {
 			var data = opts['data'](file, opts); // 取 formData
 			uploadOrderObject[uploadOrderList[0][0]](data, opts, callback, file)
-			//uploadS3(data, opts, callback, file);
-			//uploadStc(data, opts, callback, file)
 		}
 		
 	}

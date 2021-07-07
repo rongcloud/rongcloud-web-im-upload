@@ -52,7 +52,6 @@
             appkey,
             navigators:['http://navqa.cn.ronghub.com']
           });
-          window.im=im;
           im.connect({token}).then((user) => {
             console.log('链接成功, 链接用户 id 为: ', user.id);
           }).catch(function(error) {
