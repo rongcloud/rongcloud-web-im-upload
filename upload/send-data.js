@@ -570,12 +570,13 @@
 					//返回的是一个xml格式字符串，包含uploadid
 					var text=xhr.response;
 					//获取uploadId
-					var reg=/(?<=<UploadId>)\S*(?=<\/UploadId>)/g;
-					var uploadId=text.match(reg);
+					var reg=/<UploadId>(\S*?)<\/UploadId>/;
+					var arr=text.match(reg);
+					var uploadId=arr&&arr.length > 1? arr[1] : 0
 					console.log("uploadId",uploadId);
 					//204 成功但是没有返回数据
 					if(xhr.status === 200||xhr.status === 204){
-						executeResult(uploadId&&uploadId[0])
+						executeResult(uploadId)
 					} else {
 						callback.onError('uploadStcMultipart:did not get uploadId')
 					}
